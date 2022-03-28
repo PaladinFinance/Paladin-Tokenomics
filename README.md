@@ -34,7 +34,7 @@ This will install `Hardhat`, `Ethers v5`, and all the hardhat plugins used in th
 ## Tests
 
 
-Unit tests can be found in the `./test` directory.
+Tests can be found in the `./test` directory.
 
 To run the tests : 
 ```
@@ -44,7 +44,7 @@ npm run test
 
 ## Fuzzing
 
-Unit tests can be found in the `./src/test` directory.
+Fuzzing tests can be found in the `./src/test` directory.
 
 To run the tests : 
 ```
