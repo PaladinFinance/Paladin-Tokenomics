@@ -1,0 +1,23 @@
+const { ethers } = require("hardhat");
+
+// Addresses
+const TOTAL_SUPPLY =  ethers.utils.parseEther("50000000");
+
+const RECIPIENT_ADDRESS = "0x0792dCb7080466e4Bbc678Bdb873FE7D969832B8";
+
+const ADMIN_ADDRESS = "0x0792dCb7080466e4Bbc678Bdb873FE7D969832B8";
+
+const PAL_ADDRESS = "0xAB846Fb6C81370327e784Ae7CbB6d6a6af6Ff4BF";
+
+const REWARD_VAULT_ADDRESS = "";
+
+const HPAL_ADDRESS = "";
+
+module.exports = {
+    TOTAL_SUPPLY,
+    RECIPIENT_ADDRESS,
+    ADMIN_ADDRESS,
+    PAL_ADDRESS,
+    REWARD_VAULT_ADDRESS,
+    HPAL_ADDRESS,
+};
