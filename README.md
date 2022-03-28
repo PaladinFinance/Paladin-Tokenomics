@@ -26,8 +26,8 @@ This will install `Hardhat`, `Ethers v5`, and all the hardhat plugins used in th
 ## Contracts
 
 
-[XXX](https://github.com/PaladinFinance/Paladin-Tokenomics/xxx)  
-[XXX](https://github.com/PaladinFinance/Paladin-Tokenomics/xxx)  
+[PAL](https://github.com/PaladinFinance/Paladin-Tokenomics/blob/main/contracts/PaladinToken.sol)  
+[hPAL](https://github.com/PaladinFinance/Paladin-Tokenomics/blob/main/contracts/HolyPaladinToken.sol)  
 
 
 
