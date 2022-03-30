@@ -16,13 +16,13 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Seconds in a Week */
     uint256 public constant WEEK = 604800;
     /** @notice Seconds in a Month */
-    uint256 public constant MONTH = 2629800;
+    uint256 public constant MONTH = 2628000;
     /** @notice 1e18 scale */
     uint256 public constant UNIT = 1e18;
     /** @notice Max BPS value (100%) */
     uint256 public constant MAX_BPS = 10000;
     /** @notice Seconds in a Year */
-    uint256 public constant ONE_YEAR = 31557600;
+    uint256 public constant ONE_YEAR = 31536000;
 
     /** @notice  Period to wait before unstaking tokens  */
     uint256 public constant COOLDOWN_PERIOD = 864000; // 10 days
@@ -34,9 +34,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     uint256 public constant UNLOCK_DELAY = 1209600; // 2 weeks
 
     /** @notice Minimum duration of a Lock  */
-    uint256 public constant MIN_LOCK_DURATION = 7889400; // 3 months
+    uint256 public constant MIN_LOCK_DURATION = 7884000; // 3 months
     /** @notice Maximum duration of a Lock  */
-    uint256 public constant MAX_LOCK_DURATION = 63115200; // 2 years
+    uint256 public constant MAX_LOCK_DURATION = 63072000; // 2 years
 
     /** @notice Address of the PAL token  */
     IERC20 public immutable pal;

@@ -33,12 +33,12 @@ const UNIT = ethers.utils.parseEther('1')
 
 const WEEK = 604800
 
-const MONTH = 2629800
+const MONTH = 2628000
 
 const startDropPerSecond = ethers.utils.parseEther('0.0005')
 const endDropPerSecond = ethers.utils.parseEther('0.00001')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const baseLockBonusRatio = ethers.utils.parseEther('1')
 const minLockBonusRatio = ethers.utils.parseEther('2')
@@ -128,8 +128,8 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
         expect(await hPAL.claimableRewards(user2.address)).to.be.eq(0)
         expect(await hPAL.rewardsLastUpdate(user2.address)).to.be.eq(0)
 
-        expect(await hPAL.MONTH()).to.be.eq(2629800)
-        expect(await hPAL.ONE_YEAR()).to.be.eq(31557600)
+        expect(await hPAL.MONTH()).to.be.eq(2628000)
+        expect(await hPAL.ONE_YEAR()).to.be.eq(31536000)
     });
 
 
@@ -139,7 +139,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const transfer_amount = ethers.utils.parseEther('200')
 
@@ -410,7 +410,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         const lock_amount = ethers.utils.parseEther('650')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const transfer_amount = ethers.utils.parseEther('200')
 
@@ -607,7 +607,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         const lock_amount = ethers.utils.parseEther('650')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const bigger_lock_amount = ethers.utils.parseEther('1200')
 
@@ -615,8 +615,8 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         const transfer_amount = ethers.utils.parseEther('200')
 
-        const MIN_LOCK_DURATION = 7889400
-        const MAX_LOCK_DURATION = 63115200
+        const MIN_LOCK_DURATION = 7884000
+        const MAX_LOCK_DURATION = 63072000
 
         const estimateBonusRatio = async (duration: number) => {
             let durationRatio = UNIT.mul(duration - MIN_LOCK_DURATION).div(MAX_LOCK_DURATION - MIN_LOCK_DURATION)

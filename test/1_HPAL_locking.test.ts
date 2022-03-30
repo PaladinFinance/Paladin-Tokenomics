@@ -32,7 +32,7 @@ const WEEK = 604800
 const startDropPerSecond = ethers.utils.parseEther('0.0005')
 const endDropPerSecond = ethers.utils.parseEther('0.00001')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const baseLockBonusRatio = ethers.utils.parseEther('1')
 const minLockBonusRatio = ethers.utils.parseEther('2')
@@ -101,8 +101,8 @@ describe('HolyPaladinToken contract tests - Locking', () => {
         expect(await hPAL.COOLDOWN_PERIOD()).to.be.eq(864000)
         expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(432000)
         expect(await hPAL.UNLOCK_DELAY()).to.be.eq(1209600)
-        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7889400)
-        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63115200)
+        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7884000)
+        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63072000)
 
     });
 
@@ -128,19 +128,19 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const smaller_lock_amount = ethers.utils.parseEther('500')
 
-        const smaller_lock_duration = 15780000
+        const smaller_lock_duration = 15768000
 
         const bigger_lock_amount = ethers.utils.parseEther('850')
 
         const bigger_lock_duration = 47340000
 
         const estimateBonusRatio = async (duration: number) => {
-            const MAX_LOCK_DURATION = 63115200
-            const MIN_LOCK_DURATION = 7889400
+            const MAX_LOCK_DURATION = 63072000
+            const MIN_LOCK_DURATION = 7884000
             let durationRatio = UNIT.mul(duration - MIN_LOCK_DURATION).div(MAX_LOCK_DURATION - MIN_LOCK_DURATION)
             let mult = minLockBonusRatio.add((maxLockBonusRatio.sub(minLockBonusRatio)).mul(durationRatio).div(UNIT))
             return mult
@@ -645,7 +645,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const smaller_lock_amount = ethers.utils.parseEther('500')
 
@@ -724,9 +724,9 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
-        const smaller_lock_duration = 15780000
+        const smaller_lock_duration = 15768000
 
         const bigger_lock_duration = 47340000
 
@@ -815,7 +815,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('1000')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const bigger_lock_duration = 47340000
 
@@ -1014,7 +1014,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const bigger_lock_duration = 47340000
 
@@ -1437,7 +1437,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount2 = ethers.utils.parseEther('300')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         beforeEach(async () => {
 
@@ -1582,7 +1582,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount2 = ethers.utils.parseEther('500')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         beforeEach(async () => {
 
@@ -1716,19 +1716,19 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const smaller_lock_amount = ethers.utils.parseEther('500')
 
-        const smaller_lock_duration = 15780000
+        const smaller_lock_duration = 15768000
 
         const bigger_lock_amount = ethers.utils.parseEther('850')
 
         const bigger_lock_duration = 47340000
 
         const estimateBonusRatio = async (duration: number) => {
-            const MAX_LOCK_DURATION = 63115200
-            const MIN_LOCK_DURATION = 7889400
+            const MAX_LOCK_DURATION = 63072000
+            const MIN_LOCK_DURATION = 7884000
             let durationRatio = UNIT.mul(duration - MIN_LOCK_DURATION).div(MAX_LOCK_DURATION - MIN_LOCK_DURATION)
             let mult = minLockBonusRatio.add((maxLockBonusRatio.sub(minLockBonusRatio)).mul(durationRatio).div(UNIT))
             return mult
@@ -1943,13 +1943,13 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31557600
+        const lock_duration = 31536000
 
         const extra_lock_amount = ethers.utils.parseEther('250')
 
         const bigger_lock_amount = ethers.utils.parseEther('450')
 
-        const smaller_lock_duration = 15780000
+        const smaller_lock_duration = 15768000
 
         const bigger_lock_duration = 47340000
 
