@@ -206,7 +206,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).stake(stake_amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -495,7 +495,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -503,21 +503,21 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
         it(' should block transfer to/from address Zero', async () => {
 
-            await hPAL.connect(user1).approve(user1.address, allowance)
+            await hPAL.connect(user1).approve(user2.address, allowance)
 
             await expect(
-                hPAL.connect(user1).transferFrom(user1.address, ethers.constants.AddressZero, amount)
+                hPAL.connect(user2).transferFrom(user1.address, ethers.constants.AddressZero, amount)
             ).to.be.revertedWith('ERC20: transfer to the zero address')
 
             await expect(
-                hPAL.connect(user1).transferFrom(ethers.constants.AddressZero, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer from the zero address')
+                hPAL.connect(user2).transferFrom(ethers.constants.AddressZero, user1.address, amount)
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 

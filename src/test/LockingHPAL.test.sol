@@ -741,7 +741,7 @@ contract LockingHPALTest is DSTest {
         pal.transfer(locker, 1000 * 1e18);
 
         vm.prank(locker);
-        pal.approve(address(hpal), 1000 * 1e18);
+        pal.approve(address(hpal), type(uint256).max);
             
         vm.prank(locker);
         hpal.stake(700 * 1e18);
