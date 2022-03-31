@@ -94,7 +94,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
         //constants
         expect(await hPAL.COOLDOWN_PERIOD()).to.be.eq(864000)
-        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(432000)
+        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(172800)
         expect(await hPAL.UNLOCK_DELAY()).to.be.eq(1209600)
         expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7889400)
         expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63115200)
