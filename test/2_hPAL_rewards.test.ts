@@ -1685,7 +1685,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
             await expect(
                 hPAL.connect(user1).claim(0)
-            ).to.be.revertedWith('hPAL: incorrect amount')
+            ).to.be.revertedWith('IncorrectAmount')
         });
 
         it(' should do the correct transfer from rewardsVault to user', async () => {

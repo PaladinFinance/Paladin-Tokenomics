@@ -208,7 +208,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(user_balance, user1.address)
-            ).to.be.revertedWith('hPAL: Not emergency')
+            ).to.be.revertedWith('NotEmergency')
 
         });
 
@@ -442,11 +442,11 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(0, user1.address)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(user_balance, ethers.constants.AddressZero)
-            ).to.be.revertedWith('hPAL: Address Zero')
+            ).to.be.revertedWith('AddressZero')
 
         });
 
