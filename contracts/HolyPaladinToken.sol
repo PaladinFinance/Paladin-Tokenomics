@@ -105,10 +105,16 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Address of the vault holding the PAL rewards  */
     address public immutable rewardsVault;
 
-    /** @notice Global reward index  */
-    uint256 public rewardIndex;
-    /** @notice Timstamp of last update for global reward index  */
-    uint256 public lastRewardUpdate;
+    /** @notice Struct of Reward State (global or user)  */
+    struct RewardState {
+        // Reward Index
+        uint128 index;
+        // Timestamp last update for reward state
+        uint128 lastUpdate;
+    }
+
+    /** @notice Global reward state  */
+    RewardState public globalRewards;
 
     /** @notice Amount of rewards distributed per second at the start  */
     uint256 public immutable startDropPerSecond;
@@ -123,12 +129,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Timestamp: start of the DropPerSecond decrease period  */
     uint256 public immutable startDropTimestamp;
 
-    /** @notice Last reward index for each user  */
-    mapping(address => uint256) public userRewardIndex;
+    /** @notice Reward state for each user  */
+    mapping(address => RewardState) public userRewardStates;
     /** @notice Current amount of rewards claimable for the user  */
     mapping(address => uint256) public claimableRewards;
-    /** @notice Timestamp of last update for user rewards  */
-    mapping(address => uint256) public rewardsLastUpdate;
 
     /** @notice Base reward multiplier for lock  */
     uint256 public immutable baseLockBonusRatio;
@@ -206,7 +210,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         maxLockBonusRatio = _maxLockBonusRatio;
 
         // Set all update timestamp as contract creation timestamp
-        lastRewardUpdate = block.timestamp;
+        globalRewards.lastUpdate = safe128(block.timestamp);
         lastDropUpdate = block.timestamp;
         // Start the reward distribution & DropPerSecond decrease
         startDropTimestamp = block.timestamp;
@@ -584,23 +588,40 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // & in case of emergency mode, show 0
         if(emergency || user == address(0)) return 0;
         // If the user rewards where updated on that block, then return the last updated value
-        if(rewardsLastUpdate[user] == block.timestamp) return claimableRewards[user];
+        RewardState memory currentUserRewardState = userRewardStates[user];
+        if(currentUserRewardState.lastUpdate == block.timestamp) return claimableRewards[user];
 
         // Get the user current claimable amount
         uint256 estimatedClaimableRewards = claimableRewards[user];
         // Get the last updated reward index
-        uint256 currentRewardIndex = rewardIndex;
+        uint256 currentRewardIndex = currentUserRewardState.index;
 
-        if(lastRewardUpdate < block.timestamp){
+        if(currentUserRewardState.lastUpdate < block.timestamp){
             // If needed, update the reward index
             currentRewardIndex = _getNewIndex(currentDropPerSecond);
         }
 
-        (uint256 accruedRewards,) = _getUserAccruedRewards(user, currentRewardIndex);
+        (uint256 accruedRewards,) = _getUserAccruedRewards(user, currentUserRewardState, currentRewardIndex);
 
         estimatedClaimableRewards += accruedRewards;
 
         return estimatedClaimableRewards;
+    }
+
+    function rewardIndex() external view returns (uint256) {
+        return globalRewards.index;
+    }
+
+    function lastRewardUpdate() external view returns (uint256) {
+        return globalRewards.lastUpdate;
+    }
+
+    function userRewardIndex(address user) external view returns (uint256) {
+        return userRewardStates[user].index;
+    }
+
+    function rewardsLastUpdate(address user) external view returns (uint256) {
+        return userRewardStates[user].lastUpdate;
     }
 
     /**
@@ -746,7 +767,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Get the current total Supply
         uint256 currentTotalSupply = totalSupply();
         // and the seconds since the last update
-        uint256 ellapsedTime = block.timestamp - lastRewardUpdate;
+        RewardState memory currentRewardState = globalRewards;
+        uint256 ellapsedTime = block.timestamp - currentRewardState.lastUpdate;
 
         // DropPerSeond without any multiplier => the base dropPerSecond for stakers
         // The multiplier for LockedBalance is applied later, accruing more rewards depending on the Lock.
@@ -758,20 +780,21 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
          // calculate the ratio to add to the index
         uint256 ratio = currentTotalSupply > 0 ? (accruedBaseAmount * UNIT) / currentTotalSupply : 0;
 
-        return rewardIndex + ratio;
+        return currentRewardState.index + ratio;
     }
 
     // Update global reward state internal
     function _updateRewardState() internal returns (uint256){
-        if(lastRewardUpdate == block.timestamp) return rewardIndex; // Already updated for this block
+        RewardState storage globalRewardState = globalRewards;
+        if(globalRewardState.lastUpdate == block.timestamp) return globalRewardState.index; // Already updated for this block
 
         // Update (if needed) & get the current DropPerSecond
         uint256 _currentDropPerSecond = _updateDropPerSecond();
 
         // Update the index
         uint256 newIndex = _getNewIndex(_currentDropPerSecond);
-        rewardIndex = newIndex;
-        lastRewardUpdate = block.timestamp;
+        globalRewardState.index = safe128(newIndex);
+        globalRewardState.lastUpdate = safe128(block.timestamp);
 
         return newIndex;
     }
@@ -786,13 +809,14 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
     function _getUserAccruedRewards(
         address user,
+        RewardState memory userRewardState,
         uint256 currentRewardsIndex
     ) internal view returns(
         uint256 accruedRewards,
         uint256 newBonusRatio
     ) {
         // Find the user last index & current balances
-        uint256 userLastIndex = userRewardIndex[user];
+        uint256 userLastIndex = userRewardState.index;
         uint256 userStakedBalance = _availableBalanceOf(user);
         uint256 userLockedBalance;
 
@@ -824,7 +848,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                             vars.userRatioDecrease = userBonusRatioDecrease[user];
                             // Find the new multiplier for user:
                             // From the last Ratio, where we remove userBonusRatioDecrease for each second since last update
-                            vars.bonusRatioDecrease = (block.timestamp - rewardsLastUpdate[user]) * vars.userRatioDecrease;
+                            vars.bonusRatioDecrease = (block.timestamp - userRewardState.lastUpdate) * vars.userRatioDecrease;
                             
                             newBonusRatio = vars.bonusRatioDecrease >= vars.previousBonusRatio ? 0 : vars.previousBonusRatio - vars.bonusRatioDecrease;
 
@@ -859,17 +883,19 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Called for minting & burning, but we don't want to update for address 0x0
         if(user == address(0)) return;
 
-        if(rewardsLastUpdate[user] == block.timestamp) return; // Already updated for this block
+        RewardState storage userRewardState = userRewardStates[user];
+
+        if(userRewardState.lastUpdate == block.timestamp) return; // Already updated for this block
 
         // Update the user claimable rewards
-        (uint256 accruedRewards, uint256 newBonusRatio) = _getUserAccruedRewards(user, newIndex);
+        (uint256 accruedRewards, uint256 newBonusRatio) = _getUserAccruedRewards(user, userRewardState, newIndex);
         claimableRewards[user] += accruedRewards;
         // Store the new Bonus Ratio
         userCurrentBonusRatio[user] = newBonusRatio;
         
         // and set the current timestamp for last update, and the last used index for the user rewards
-        rewardsLastUpdate[user] = block.timestamp;
-        userRewardIndex[user] = newIndex;
+        userRewardState.lastUpdate = safe128(block.timestamp);
+        userRewardState.index = safe128(newIndex);
 
     }
 
