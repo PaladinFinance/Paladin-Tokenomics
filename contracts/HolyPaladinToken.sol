@@ -1113,6 +1113,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     ) internal view returns(uint256) {
         uint256 receiverCooldown = cooldowns[receiver];
 
+        // If amount is 0, there is not transfer, no need to change the receiver cooldown
+        if(amount == 0) return receiverCooldown;
+
         // If receiver has no cooldown, no need to set a new one
         if(receiverCooldown == 0) return 0;
 
