@@ -1056,6 +1056,30 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
     }
 
+    function _writeUserLock(
+        address user,
+        uint256 amount,
+        uint256 startTimestamp,
+        uint256 duration
+    ) internal {
+        uint256 pos = userLocks[user].length;
+        if (pos > 0 && userLocks[user][pos - 1].fromBlock == block.number) {
+            UserLock storage currentUserLock = userLocks[user][pos - 1];
+            currentUserLock.amount = safe128(amount);
+            currentUserLock.duration = safe48(duration);
+            currentUserLock.startTimestamp = safe48(startTimestamp);
+        } else {
+            userLocks[user].push(
+                UserLock(
+                    safe128(amount),
+                    safe48(startTimestamp),
+                    safe48(duration),
+                    safe32(block.number)
+                )
+            );
+        }
+    }
+
     function _writeTotalLocked(uint256 newTotalLocked) internal {
         uint256 pos = totalLocks.length;
         if (pos > 0 && totalLocks[pos - 1].fromBlock == block.number) {
@@ -1190,12 +1214,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 // User locked, and then unlocked
                 // or user lock expired
 
-                userLocks[user].push(UserLock(
-                    safe128(amount),
-                    safe48(startTimestamp),
-                    safe48(duration),
-                    safe32(block.number)
-                ));
+                _writeUserLock(user, amount, startTimestamp, duration);
             }
             else {
                 // Update of the current Lock : increase amount or increase duration
@@ -1204,15 +1223,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 require(duration >=  currentUserLock.duration,"hPAL: smaller duration");
 
                 // If the method is called with INCREASE_AMOUNT, then we don't change the startTimestamp of the Lock
-
-                userLocks[user].push(UserLock(
-                    safe128(amount),
-                    action == LockAction.INCREASE_AMOUNT ? currentUserLock.startTimestamp : safe48(startTimestamp),
-                    safe48(duration),
-                    safe32(block.number)
-                ));
-
                 startTimestamp = action == LockAction.INCREASE_AMOUNT ? currentUserLock.startTimestamp : startTimestamp;
+                _writeUserLock(user, amount, startTimestamp, duration);
             }
 
             // If the duration is updated, re-calculate the multiplier for the Lock
@@ -1260,12 +1272,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         userBonusRatioDecrease[user] = 0;
 
         // Set the user Lock as an empty Lock
-        userLocks[user].push(UserLock(
-            safe128(0),
-            safe48(block.timestamp),
-            safe48(0),
-            safe32(block.number)
-        ));
+        _writeUserLock(user, 0, block.timestamp, 0);
 
         emit Unlock(user, currentUserLock.amount, currentTotalLocked);
     }
@@ -1290,12 +1297,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         _writeTotalLocked(currentTotalLocked);
 
         // Set an empty Lock for the user
-        userLocks[user].push(UserLock(
-            safe128(0),
-            safe48(block.timestamp),
-            safe48(0),
-            safe32(block.number)
-        ));
+        _writeUserLock(user, 0, block.timestamp, 0);
 
         // Remove the bonus multiplier
         userCurrentBonusRatio[user] = 0;
