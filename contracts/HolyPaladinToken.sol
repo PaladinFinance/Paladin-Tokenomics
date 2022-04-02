@@ -226,6 +226,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @notice Updates the Cooldown for the caller
      */
     function cooldown() external {
+        if(emergency) revert EmergencyBlock();
         require(balanceOf(msg.sender) > 0, "hPAL: No balance");
 
         // Set the current timestamp as start of the user cooldown
