@@ -719,6 +719,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             if(currentDropPerSecond != endDropPerSecond) {
                 currentDropPerSecond = endDropPerSecond;
                 lastDropUpdate = block.timestamp;
+                // Here we set the current timestamp isntead of increasing by a number of month,
+                // since we exceeded the dropDecreaseDuration, and the value could be updated
+                // outside a monthly process
             }
 
             return endDropPerSecond;
@@ -736,7 +739,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         uint256 newDropPerSecond = currentDropPerSecond - dropPerSecondDecrease > endDropPerSecond ? currentDropPerSecond - dropPerSecondDecrease : endDropPerSecond;
     
         currentDropPerSecond = newDropPerSecond;
-        lastDropUpdate = block.timestamp;
+        lastDropUpdate = lastDropUpdate + (nbMonthEllapsed * MONTH);
 
         return newDropPerSecond;
     }
