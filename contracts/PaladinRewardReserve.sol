@@ -22,7 +22,7 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
     event RemovedSpender(address indexed token, address indexed spender);
 
     constructor(address _admin) {
-        transferOwnership(_admin);
+        _transferOwnership(_admin);
     }
 
     function setNewSpender(address token, address spender, uint256 amount) external onlyOwner {
