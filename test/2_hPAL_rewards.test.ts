@@ -833,7 +833,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            estimated_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(stake_amount).div(UNIT)
+            estimated_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(stake_amount).div(UNIT).div(UNIT)
 
             expect(user_rewards3).to.be.eq(user_rewards2.add(estimated_accrued_rewards))
 
@@ -853,7 +853,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(stake_amount).div(UNIT)
+            estimated_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(stake_amount).div(UNIT).div(UNIT)
 
             expect(user_rewards4).to.be.eq(user_rewards3.add(estimated_accrued_rewards))
         });
@@ -900,7 +900,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -922,7 +922,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -973,7 +973,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -995,7 +995,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1046,7 +1046,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1068,7 +1068,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1252,7 +1252,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1274,7 +1274,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((unlock_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((unlock_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(unlock_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1334,7 +1334,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1356,7 +1356,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((kick_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((kick_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(kick_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1418,7 +1418,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1440,7 +1440,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 estimated_current_multiplier.add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update2_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update2_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update2_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1543,7 +1543,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1566,7 +1566,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((global_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((global_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(global_index.sub(update_index).mul(staked_balance).div(UNIT))
 

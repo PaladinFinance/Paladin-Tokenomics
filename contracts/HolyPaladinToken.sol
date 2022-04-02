@@ -726,7 +726,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         if(block.timestamp < lastDropUpdate + MONTH) return currentDropPerSecond; // Update it once a month
 
-        uint256 dropDecreasePerMonth = (startDropPerSecond - endDropPerSecond) / (dropDecreaseDuration / MONTH);
+        uint256 dropDecreasePerMonth = ((startDropPerSecond - endDropPerSecond) * MONTH) / (dropDecreaseDuration);
         uint256 nbMonthEllapsed = (block.timestamp - lastDropUpdate) / MONTH;
 
         uint256 dropPerSecondDecrease = dropDecreasePerMonth * nbMonthEllapsed;
@@ -839,7 +839,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                             // and calculate the locking rewards based on the locked balance & 
                             // a ratio based on the rpevious one and the newly calculated one
                             vars.periodBonusRatio = newBonusRatio + ((vars.userRatioDecrease + vars.bonusRatioDecrease) / 2);
-                            lockingRewards = (userLockedBalance * ((indexDiff * vars.periodBonusRatio) / UNIT)) / UNIT;
+                            lockingRewards = ((userLockedBalance * (indexDiff * vars.periodBonusRatio)) / UNIT) / UNIT;
                         }
                     }
 
