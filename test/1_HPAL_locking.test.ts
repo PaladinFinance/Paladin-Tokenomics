@@ -384,6 +384,34 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         });
 
+        it(' should have the maximum Lock BonusRatio', async () => {
+
+            const max_duration = (await hPAL.MAX_LOCK_DURATION())
+
+            await hPAL.connect(user1).lock(lock_amount, max_duration)
+
+            const expected_user_bonusRatio = await hPAL.maxLockBonusRatio()
+            const estimated_decrease = expected_user_bonusRatio.sub(baseLockBonusRatio).div(max_duration)
+
+            expect(await hPAL.userCurrentBonusRatio(user1.address)).to.be.eq(expected_user_bonusRatio)
+            expect(await hPAL.userBonusRatioDecrease(user1.address)).to.be.eq(estimated_decrease)
+
+        });
+
+        it(' should have the minimum Lock BonusRatio', async () => {
+
+            const min_duration = (await hPAL.MIN_LOCK_DURATION())
+
+            await hPAL.connect(user1).lock(lock_amount, min_duration)
+
+            const expected_user_bonusRatio = await hPAL.minLockBonusRatio()
+            const estimated_decrease = expected_user_bonusRatio.sub(baseLockBonusRatio).div(min_duration)
+
+            expect(await hPAL.userCurrentBonusRatio(user1.address)).to.be.eq(expected_user_bonusRatio)
+            expect(await hPAL.userBonusRatioDecrease(user1.address)).to.be.eq(estimated_decrease)
+
+        });
+
         it(' should fail if given incorrect durations', async () => {
 
             const lower_duration = (await hPAL.MIN_LOCK_DURATION()).sub(1)
