@@ -55,7 +55,8 @@ const config: HardhatUserConfig = {
       forking: {
         url: "https://eth-mainnet.alchemyapi.io/v2/" + (process.env.ALCHEMY_API_KEY || ''),
         blockNumber: 13178506
-      }
+      },
+      allowUnlimitedContractSize: true,
     },
     kovan: {
       url: process.env.KOVAN_URI,

@@ -1056,6 +1056,18 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
     }
 
+    function _writeTotalLocked(uint256 newTotalLocked) internal {
+        uint256 pos = totalLocks.length;
+        if (pos > 0 && totalLocks[pos - 1].fromBlock == block.number) {
+            totalLocks[pos - 1].total = safe224(newTotalLocked);
+        } else {
+            totalLocks.push(TotalLock(
+                safe224(newTotalLocked),
+                safe32(block.number)
+            ));
+        }
+    }
+
     // -----------------
 
     function _stake(address user, uint256 amount) internal returns(uint256) {
@@ -1161,10 +1173,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
             // Update total locked supply
             currentTotalLocked += amount;
-            totalLocks.push(TotalLock(
-                safe224(currentTotalLocked),
-                safe32(block.number)
-            ));
+            _writeTotalLocked(currentTotalLocked);
 
             emit Lock(user, amount, block.timestamp, duration, currentTotalLocked);
         } 
@@ -1222,10 +1231,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 if(currentUserLock.amount != 0) currentTotalLocked -= currentUserLock.amount;
                 
                 currentTotalLocked += amount;
-                totalLocks.push(TotalLock(
-                    safe224(currentTotalLocked),
-                    safe32(block.number)
-                ));
+                _writeTotalLocked(currentTotalLocked);
             }
 
             emit Lock(user, amount, startTimestamp, duration, currentTotalLocked);
@@ -1247,10 +1253,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
-        totalLocks.push(TotalLock(
-            safe224(currentTotalLocked),
-            safe32(block.number)
-        ));
+        _writeTotalLocked(currentTotalLocked);
 
         // Remove the bonus multiplier
         userCurrentBonusRatio[user] = 0;
@@ -1284,10 +1287,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
-        totalLocks.push(TotalLock(
-            safe224(currentTotalLocked),
-            safe32(block.number)
-        ));
+        _writeTotalLocked(currentTotalLocked);
 
         // Set an empty Lock for the user
         userLocks[user].push(UserLock(
@@ -1321,7 +1321,13 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         delegates[delegator] = delegatee;
 
         // update the the Delegate chekpoint for the delegatee
-        delegateCheckpoints[delegator].push(DelegateCheckpoint(safe32(block.number), delegatee));
+        uint pos = delegateCheckpoints[delegator].length;
+
+        if (pos > 0 && delegateCheckpoints[delegator][pos - 1].fromBlock == block.number) {
+            delegateCheckpoints[delegator][pos - 1].delegate = delegatee;
+        } else {
+            delegateCheckpoints[delegator].push(DelegateCheckpoint(safe32(block.number), delegatee));
+        }
 
         emit DelegateChanged(delegator, oldDelegatee, delegatee);
 
