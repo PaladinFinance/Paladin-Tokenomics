@@ -12,7 +12,8 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
     using SafeERC20 for IERC20;
 
     /** @notice Addresses allowed to transfer tokens from this contract */
-    mapping(address => bool) public approvedSpenders;
+    // User => token => bool
+    mapping(address => mapping(address => bool)) public approvedSpenders;
 
     /** @notice Emitted when a new spender is approved*/
     event NewSpender(address indexed token, address indexed spender, uint256 amount);
@@ -21,20 +22,22 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
     /** @notice Emitted when a spender allowance is removed */
     event RemovedSpender(address indexed token, address indexed spender);
 
+    event TokenTransfer(address indexed token, address indexed receiver, uint256 amount);
+
     constructor(address _admin) {
         transferOwnership(_admin);
     }
 
     function setNewSpender(address token, address spender, uint256 amount) external onlyOwner {
-        require(!approvedSpenders[spender], "Already Spender");
-        approvedSpenders[spender] = true;
+        require(!approvedSpenders[spender][token], "Already Spender");
+        approvedSpenders[spender][token] = true;
         IERC20(token).safeApprove(spender, amount);
 
         emit NewSpender(token, spender, amount);
     }
 
     function updateSpenderAllowance(address token, address spender, uint256 amount) external onlyOwner {
-        require(approvedSpenders[spender], "Not approved Spender");
+        require(approvedSpenders[spender][token], "Not approved Spender");
         IERC20(token).safeApprove(spender, 0);
         IERC20(token).safeApprove(spender, amount);
 
@@ -42,8 +45,8 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
     }
 
     function removeSpender(address token, address spender) external onlyOwner {
-        require(approvedSpenders[spender], "Not approved Spender");
-        approvedSpenders[spender] = false;
+        require(approvedSpenders[spender][token], "Not approved Spender");
+        approvedSpenders[spender][token] = false;
         IERC20(token).safeApprove(spender, 0);
 
         emit RemovedSpender(token, spender);
@@ -51,6 +54,8 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
 
     function transferToken(address token, address receiver, uint256 amount) external onlyOwner nonReentrant {
         IERC20(token).safeTransfer(receiver, amount);
+
+        emit TokenTransfer(token, receiver, amount);
     }
 
 }
