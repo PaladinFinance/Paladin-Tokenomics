@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.4",
+        version: "0.8.10",
         settings: {
           optimizer: {
             enabled: true,
@@ -31,15 +31,6 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 999999 //keeping that score since it's the one used for live version
-          },
-        }
-      },
-      'contracts/HolyPaladinToken.sol': {
-        version: "0.8.10",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
           },
         }
       },

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.10;
 
 import "./open-zeppelin/utils/Ownable.sol";
 import "./open-zeppelin/utils/ReentrancyGuard.sol";
@@ -28,31 +28,33 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
         transferOwnership(_admin);
     }
 
-    function setNewSpender(address token, address spender, uint256 amount) external onlyOwner {
+    function setNewSpender(address token, address spender, uint256 amount) external nonReentrant onlyOwner {
         require(!approvedSpenders[spender][token], "Already Spender");
         approvedSpenders[spender][token] = true;
-        IERC20(token).safeApprove(spender, amount);
+        IERC20(token).safeIncreaseAllowance(spender, amount);
 
         emit NewSpender(token, spender, amount);
     }
 
-    function updateSpenderAllowance(address token, address spender, uint256 amount) external onlyOwner {
+    function updateSpenderAllowance(address token, address spender, uint256 amount) external nonReentrant onlyOwner {
         require(approvedSpenders[spender][token], "Not approved Spender");
-        IERC20(token).safeApprove(spender, 0);
-        IERC20(token).safeApprove(spender, amount);
+        IERC20(token).approve(spender, amount);
 
         emit UpdateSpender(token, spender, amount);
     }
 
-    function removeSpender(address token, address spender) external onlyOwner {
+    function removeSpender(address token, address spender) external nonReentrant onlyOwner {
         require(approvedSpenders[spender][token], "Not approved Spender");
         approvedSpenders[spender][token] = false;
-        IERC20(token).safeApprove(spender, 0);
+        uint256 currentAllowance = IERC20(token).allowance(address(this), spender);
+        if(currentAllowance != 0){
+            IERC20(token).safeDecreaseAllowance(spender, currentAllowance);
+        }
 
         emit RemovedSpender(token, spender);
     }
 
-    function transferToken(address token, address receiver, uint256 amount) external onlyOwner nonReentrant {
+    function transferToken(address token, address receiver, uint256 amount) external nonReentrant onlyOwner {
         IERC20(token).safeTransfer(receiver, amount);
 
         emit TokenTransfer(token, receiver, amount);

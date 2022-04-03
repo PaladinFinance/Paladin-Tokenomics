@@ -31,6 +31,7 @@ describe('PaladinRewardReserve contract tests', () => {
     let externalUser: SignerWithAddress
 
     let token: PaladinToken
+    let token2: PaladinToken
 
     let reserve: PaladinRewardReserve
 
@@ -48,6 +49,11 @@ describe('PaladinRewardReserve contract tests', () => {
 
         await token.connect(admin).setTransfersAllowed(true);
 
+        token2 = (await tokenFactory.connect(deployer).deploy(ethers.utils.parseEther('5000000'), admin.address, recipient.address)) as PaladinToken;
+        await token2.deployed();
+
+        await token2.connect(admin).setTransfersAllowed(true);
+
         reserve = (await reserveFactory.connect(deployer).deploy(
             admin.address
         )) as PaladinRewardReserve;
@@ -60,8 +66,8 @@ describe('PaladinRewardReserve contract tests', () => {
 
         expect(await reserve.owner()).to.be.eq(admin.address)
 
-        expect(await reserve.approvedSpenders(spender1.address)).to.be.false
-        expect(await reserve.approvedSpenders(spender2.address)).to.be.false
+        expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.false
+        expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.false
 
     });
 
@@ -82,8 +88,10 @@ describe('PaladinRewardReserve contract tests', () => {
                 .to.emit(reserve, 'NewSpender')
                 .withArgs(token.address, spender1.address, allowance_amount);
 
-            expect(await reserve.approvedSpenders(spender1.address)).to.be.true
-            expect(await reserve.approvedSpenders(spender2.address)).to.be.false
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.false
+
+            expect(await reserve.approvedSpenders(spender1.address, token2.address)).to.be.false
                 
             expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
         });
@@ -100,13 +108,63 @@ describe('PaladinRewardReserve contract tests', () => {
                 .to.emit(reserve, 'NewSpender')
                 .withArgs(token.address, spender2.address, allowance_amount2);
 
-            expect(await reserve.approvedSpenders(spender1.address)).to.be.true
-            expect(await reserve.approvedSpenders(spender2.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.true
+
+            expect(await reserve.approvedSpenders(spender1.address, token2.address)).to.be.false
 
             expect(await token.allowance(reserve.address, spender2.address)).to.be.eq(allowance_amount2)
                 
             expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
 
+        });
+
+        it(' should allow to set spender for another token', async () => {
+
+            await reserve.connect(admin).setNewSpender(token.address, spender1.address, allowance_amount)
+
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(0)
+            expect(await token2.allowance(reserve.address, spender2.address)).to.be.eq(0)
+                
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
+
+            await expect(reserve.connect(admin).setNewSpender(token2.address, spender2.address, allowance_amount2))
+                .to.emit(reserve, 'NewSpender')
+                .withArgs(token2.address, spender2.address, allowance_amount2);
+
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+
+            expect(await reserve.approvedSpenders(spender2.address, token2.address)).to.be.true
+
+            expect(await reserve.approvedSpenders(spender1.address, token2.address)).to.be.false
+
+            expect(await token2.allowance(reserve.address, spender2.address)).to.be.eq(allowance_amount2)
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(0)
+                
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
+            expect(await token.allowance(reserve.address, spender2.address)).to.be.eq(0)
+        });
+
+        it(' should allow to set same spender for another token (& not impact previous allowance)', async () => {
+
+            await reserve.connect(admin).setNewSpender(token.address, spender1.address, allowance_amount)
+
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(0)
+                
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
+
+            await expect(reserve.connect(admin).setNewSpender(token2.address, spender1.address, allowance_amount2))
+                .to.emit(reserve, 'NewSpender')
+                .withArgs(token2.address, spender1.address, allowance_amount2);
+
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender1.address, token2.address)).to.be.true
+
+            expect(await reserve.approvedSpenders(spender2.address, token2.address)).to.be.false
+
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
+                
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount2)
         });
 
         it(' should fail if spender already approved', async () => {
@@ -154,8 +212,8 @@ describe('PaladinRewardReserve contract tests', () => {
                 .to.emit(reserve, 'UpdateSpender')
                 .withArgs(token.address, spender1.address, new_allowance_amount);
 
-            expect(await reserve.approvedSpenders(spender1.address)).to.be.true
-            expect(await reserve.approvedSpenders(spender2.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.true
             
             expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(new_allowance_amount)
                 
@@ -175,8 +233,8 @@ describe('PaladinRewardReserve contract tests', () => {
                 .to.emit(reserve, 'UpdateSpender')
                 .withArgs(token.address, spender2.address, allowance_amount2);
 
-            expect(await reserve.approvedSpenders(spender1.address)).to.be.true
-            expect(await reserve.approvedSpenders(spender2.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.true
                 
             expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(new_allowance_amount)
                 
@@ -186,6 +244,12 @@ describe('PaladinRewardReserve contract tests', () => {
         it(' should fail if spender not approved', async () => {
             await expect(
                 reserve.connect(admin).updateSpenderAllowance(token.address, externalUser.address, allowance_amount)
+            ).to.be.revertedWith('Not approved Spender')
+        });
+
+        it(' should fail if spender not approved for the token', async () => {
+            await expect(
+                reserve.connect(admin).updateSpenderAllowance(token2.address, externalUser.address, allowance_amount)
             ).to.be.revertedWith('Not approved Spender')
         });
 
@@ -217,8 +281,8 @@ describe('PaladinRewardReserve contract tests', () => {
                 .to.emit(reserve, 'RemovedSpender')
                 .withArgs(token.address, spender1.address);
 
-            expect(await reserve.approvedSpenders(spender1.address)).to.be.false
-            expect(await reserve.approvedSpenders(spender2.address)).to.be.true
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.false
+            expect(await reserve.approvedSpenders(spender2.address, token.address)).to.be.true
 
         });
 
@@ -247,6 +311,26 @@ describe('PaladinRewardReserve contract tests', () => {
             expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(0)
                 
             expect(await token.allowance(reserve.address, spender2.address)).to.be.eq(allowance_amount2)
+        });
+
+        it(' should not change allowance for the other tokens', async () => {
+
+            await reserve.connect(admin).setNewSpender(token2.address, spender1.address, allowance_amount2)
+
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount)
+                
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount2)
+
+            await expect(reserve.connect(admin).removeSpender(token.address, spender1.address))
+                .to.emit(reserve, 'RemovedSpender')
+                .withArgs(token.address, spender1.address);
+                
+            expect(await token.allowance(reserve.address, spender1.address)).to.be.eq(0)
+                
+            expect(await token2.allowance(reserve.address, spender1.address)).to.be.eq(allowance_amount2)
+
+            expect(await reserve.approvedSpenders(spender1.address, token.address)).to.be.false
+            expect(await reserve.approvedSpenders(spender1.address, token2.address)).to.be.true
         });
 
         it(' should fail if spender not approved', async () => {
