@@ -38,7 +38,15 @@ contract PaladinRewardReserve is Ownable, ReentrancyGuard{
 
     function updateSpenderAllowance(address token, address spender, uint256 amount) external nonReentrant onlyOwner {
         require(approvedSpenders[spender][token], "Not approved Spender");
-        IERC20(token).approve(spender, amount);
+        uint256 currentAllowance = IERC20(token).allowance(address(this), spender);
+
+        if(currentAllowance < amount){
+            IERC20(token).safeIncreaseAllowance(spender, amount - currentAllowance);
+        }
+        else if(currentAllowance > amount){
+            IERC20(token).safeDecreaseAllowance(spender, currentAllowance - amount);
+        }
+        // Otherwise, allowance is already the required value, no need to change
 
         emit UpdateSpender(token, spender, amount);
     }
