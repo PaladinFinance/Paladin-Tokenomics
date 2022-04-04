@@ -65,6 +65,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
             token.address,
             admin.address,
             mockRewardsVault.address,
+            ethers.constants.AddressZero,
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,
@@ -88,6 +89,9 @@ describe('HolyPaladinToken contract tests - Admin', () => {
         expect(tokenDecimals).to.be.eq(18)
 
         expect(await hPAL.pal()).to.be.eq(token.address)
+        
+        expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
+        expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
         expect(await hPAL.kickRatioPerWeek()).to.be.eq(1000)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))

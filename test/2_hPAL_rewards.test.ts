@@ -83,6 +83,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
             token.address,
             admin.address,
             reserve.address,
+            ethers.constants.AddressZero,
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,
@@ -111,6 +112,9 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
         expect(await hPAL.startDropTimestamp()).to.be.eq(deploy_ts)
 
         expect(await hPAL.rewardIndex()).to.be.eq(0)
+        
+        expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
+        expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
         expect(await hPAL.startDropPerSecond()).to.be.eq(startDropPerSecond)
         expect(await hPAL.endDropPerSecond()).to.be.eq(endDropPerSecond)
