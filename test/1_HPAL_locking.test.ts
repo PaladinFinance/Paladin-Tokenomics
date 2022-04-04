@@ -93,7 +93,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         expect(await hPAL.pal()).to.be.eq(token.address)
 
-        expect(await hPAL.kickRatioPerWeek()).to.be.eq(1000)
+        expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
         expect(await hPAL.emergency()).to.be.false
 

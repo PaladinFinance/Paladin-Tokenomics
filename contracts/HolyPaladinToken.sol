@@ -94,7 +94,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     mapping(address => DelegateCheckpoint[]) public delegateCheckpoints;
 
     /** @notice Ratio (in BPS) of locked balance applied of penalty for each week over lock end  */
-    uint256 public kickRatioPerWeek = 1000;
+    uint256 public kickRatioPerWeek = 100;
 
     /** @notice Ratio of bonus votes applied on user locked balance  */
     uint256 public constant bonusLockVoteRatio = 0.5e18;
@@ -397,7 +397,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function delegate(address delegatee) external virtual {
         if(emergency) revert EmergencyBlock();
-        return _delegate(_msgSender(), delegatee);
+        return _delegate(msg.sender, delegatee);
     }
 
     /**
@@ -413,6 +413,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Cannot claim more than accrued rewards, but we can use a higher amount to claim all the rewards
         uint256 claimAmount = amount < claimableRewards[msg.sender] ? amount : claimableRewards[msg.sender];
+
+        // Nothing to claim
+        if(claimAmount == 0) return;
 
         // remove the claimed amount from the claimable mapping for the user, 
         // and transfer the PAL from the rewardsVault to the user
@@ -1096,6 +1099,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Can only unstake was is available, need to unlock before
         uint256 userAvailableBalance = _availableBalanceOf(user);
         uint256 burnAmount = amount > userAvailableBalance ? userAvailableBalance : amount;
+
+        if(burnAmount == 0) revert AvailableBalanceTooLow();
 
         // Burn the hPAL 1:1 with PAL
         _burn(user, burnAmount);
