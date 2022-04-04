@@ -139,8 +139,6 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
 
-        utils.mineBlocks(1);
-
         HolyPaladinToken.UserLock memory previousLock = hpal.getUserLock(locker);
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
 
@@ -298,8 +296,6 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
 
-        utils.mineBlocks(10);
-
         HolyPaladinToken.UserLock memory previousLock = hpal.getUserLock(locker);
 
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
@@ -391,8 +387,6 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
 
-        utils.mineBlocks(1);
-
         HolyPaladinToken.UserLock memory previousLock = hpal.getUserLock(locker);
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
         
@@ -482,8 +476,6 @@ contract LockingHPALTest is DSTest {
 
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
-
-        utils.mineBlocks(1);
 
         HolyPaladinToken.UserLock memory previousLock = hpal.getUserLock(locker);
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
@@ -575,8 +567,6 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.lock(amount, lockDuration);
 
-        utils.mineBlocks(1);
-
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
 
         utils.advanceTime(lockDuration + 10);
@@ -619,8 +609,6 @@ contract LockingHPALTest is DSTest {
 
         vm.prank(locker);
         hpal.lock(amount, lockDuration);
-
-        utils.mineBlocks(1);
 
         uint256 previousLockerBalance = hpal.balanceOf(locker);
         uint256 previousLockerKicker = hpal.balanceOf(kicker);
@@ -761,8 +749,6 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.lock(300 * 1e18, 31557600);
 
-        utils.mineBlocks(1);
-
         uint256 previousBalance = pal.balanceOf(locker);
         uint256 previousStakedBalance = hpal.balanceOf(locker);
         uint256 previousContractBalance = pal.balanceOf(address(hpal));
@@ -855,8 +841,6 @@ contract LockingHPALTest is DSTest {
 
         vm.prank(locker);
         hpal.lock(lockAmount, 31557600);
-
-        utils.mineBlocks(1);
 
         uint256 previousBalanceLocker = hpal.balanceOf(locker);
         uint256 previousAvailableBalanceLocker = hpal.availableBalanceOf(locker);

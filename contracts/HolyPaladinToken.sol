@@ -1204,7 +1204,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         else {
             // Get the current user Lock
             uint256 currentUserLockIndex = userLocks[user].length - 1;
-            UserLock storage currentUserLock = userLocks[user][currentUserLockIndex];
+            UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
             // Calculate the end of the user current lock
             uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
@@ -1257,7 +1257,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Get the user current Lock
         // And calculate the end of the Lock
         uint256 currentUserLockIndex = userLocks[user].length - 1;
-        UserLock storage currentUserLock = userLocks[user][currentUserLockIndex];
+        UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
         require(block.timestamp > userCurrentLockEnd, "hPAL: Not expired");
@@ -1284,7 +1284,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Get the user to kick current Lock
         // and calculate the end of the Lock
         uint256 currentUserLockIndex = userLocks[user].length - 1;
-        UserLock storage currentUserLock = userLocks[user][currentUserLockIndex];
+        UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
         require(block.timestamp > userCurrentLockEnd, "hPAL: Not expired");
