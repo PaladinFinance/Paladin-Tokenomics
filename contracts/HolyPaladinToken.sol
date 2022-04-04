@@ -192,7 +192,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     event EmergencyUnstake(address indexed user, uint256 amount);
 
     constructor(
-        address palToken,
+        address _palToken,
         address _admin,
         address _rewardsVault,
         uint256 _startDropPerSecond,
@@ -202,11 +202,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         uint256 _minLockBonusRatio,
         uint256 _maxLockBonusRatio
     ){
-        require(palToken != address(0));
+        require(_palToken != address(0));
         require(_admin != address(0));
         require(_rewardsVault != address(0));
 
-        pal = IERC20(palToken);
+        pal = IERC20(_palToken);
 
         transferOwnership(_admin);
 
@@ -224,6 +224,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         dropDecreaseDuration = _dropDecreaseDuration;
 
+        require(_baseLockBonusRatio != 0);
+        require(_minLockBonusRatio >= _baseLockBonusRatio);
+        require(_maxLockBonusRatio >= _minLockBonusRatio);
         baseLockBonusRatio = _baseLockBonusRatio;
         minLockBonusRatio = _minLockBonusRatio;
         maxLockBonusRatio = _maxLockBonusRatio;
