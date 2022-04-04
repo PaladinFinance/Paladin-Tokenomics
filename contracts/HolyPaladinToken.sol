@@ -464,6 +464,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @return UserLock : user past Lock
      */
     function getUserPastLock(address user, uint256 blockNumber) external view returns(UserLock memory) {
+        //If the contract is blocked (emergency mode)
+        //Return an empty lock
+        if(emergency) return UserLock(0, 0, 0, 0);
         return _getPastLock(user, blockNumber);
     }
 
