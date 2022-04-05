@@ -28,7 +28,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     uint256 public constant COOLDOWN_PERIOD = 864000; // 10 days
     /** @notice  Duration of the unstaking period
     After that period, unstaking cooldown is expired  */
-    uint256 public constant UNSTAKE_PERIOD = 432000; // 5 days
+    uint256 public constant UNSTAKE_PERIOD = 172800; // 2 days
 
     /** @notice Period to unlock/re-lock tokens without possibility of punishement   */
     uint256 public constant UNLOCK_DELAY = 1209600; // 2 weeks
