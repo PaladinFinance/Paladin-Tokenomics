@@ -792,7 +792,7 @@ describe('PaladinToken contract tests', () => {
             expect(votes).to.be.eq(0)
         });
 
-        it(' should fail if blockNumber did not happened yet', async () => {
+        /*it(' should fail if blockNumber did not happened yet', async () => {
 
             const currentBlock = await ethers.provider.getBlockNumber()
 
@@ -800,7 +800,7 @@ describe('PaladinToken contract tests', () => {
                 token.getPastVotes(user2.address, currentBlock + 1000)
             ).to.be.revertedWith('PaladinToken: invalid blockNumber')
 
-        });
+        });*/
 
     });
 

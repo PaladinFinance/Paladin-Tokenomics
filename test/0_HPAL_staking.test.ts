@@ -92,7 +92,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
         expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
         expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
-        expect(await hPAL.kickRatioPerWeek()).to.be.eq(1000)
+        expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
         expect(await hPAL.emergency()).to.be.false
 
@@ -192,7 +192,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).stake(0)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -402,7 +402,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).transfer(user1.address, amount)
-            ).to.be.revertedWith('hPAL: Available balance too low')
+            ).to.be.revertedWith('AvailableBalanceTooLow')
 
         });
 
@@ -489,7 +489,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).transferFrom(user2.address, user1.address, amount)
-            ).to.be.revertedWith('hPAL: Available balance too low')
+            ).to.be.revertedWith('AvailableBalanceTooLow')
 
         });
 
@@ -803,7 +803,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.getPastVotes(user2.address, currentBlock + 1000)
-            ).to.be.revertedWith('hPAL: invalid blockNumber')
+            ).to.be.revertedWith('InvalidBlockNumber')
 
         });
 
@@ -908,7 +908,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.getPastDelegate(user1.address, currentBlock + 1000)
-            ).to.be.revertedWith('hPAL: invalid blockNumber')
+            ).to.be.revertedWith('InvalidBlockNumber')
 
         });
 
@@ -934,7 +934,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).unstake(unstake_amount, user1.address)
-            ).to.be.revertedWith('hPAL: unstake period expired')
+            ).to.be.revertedWith('UnstakePeriodExpired')
 
         });
 
@@ -947,7 +947,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).unstake(unstake_amount, user1.address)
-            ).to.be.revertedWith('hPAL: Insufficient cooldown')
+            ).to.be.revertedWith('InsufficientCooldown')
 
         });
 
@@ -1021,7 +1021,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).unstake(unstake_amount, user1.address)
-            ).to.be.revertedWith('hPAL: unstake period expired')
+            ).to.be.revertedWith('UnstakePeriodExpired')
 
         });
 
@@ -1109,11 +1109,11 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).unstake(0, user1.address)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 hPAL.connect(user1).unstake(unstake_amount, ethers.constants.AddressZero)
-            ).to.be.revertedWith('hPAL: Address Zero')
+            ).to.be.revertedWith('AddressZero')
 
         });
 
@@ -1360,7 +1360,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).cooldown()
-            ).to.be.revertedWith('hPAL: No balance')
+            ).to.be.revertedWith('NoBalance')
 
         });
 
@@ -1552,7 +1552,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).unstake(unstake_amount, user1.address)
-            ).to.be.revertedWith('hPAL: Insufficient cooldown')
+            ).to.be.revertedWith('InsufficientCooldown')
 
         });
 

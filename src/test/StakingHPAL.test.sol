@@ -68,7 +68,7 @@ contract StakingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(staker);
             hpal.stake(amount);
@@ -148,7 +148,7 @@ contract StakingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(staker);
             hpal.unstake(amount, staker);
@@ -232,7 +232,7 @@ contract StakingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: incorrect amount")
+                bytes4(keccak256(bytes("IncorrectAmount()")))
             );
             vm.prank(staker);
             hpal.claim(amount);
@@ -297,7 +297,7 @@ contract StakingHPALTest is DSTest {
 
         if(amount > stakingAmount) {
             vm.expectRevert(
-                bytes("hPAL: Available balance too low")
+                bytes4(keccak256(bytes("AvailableBalanceTooLow()")))
             );
             vm.prank(staker);
             hpal.transfer(receiver, amount);

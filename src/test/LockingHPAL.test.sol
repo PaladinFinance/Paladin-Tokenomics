@@ -71,7 +71,7 @@ contract LockingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(locker);
             hpal.lock(amount, lockDuration);
@@ -87,7 +87,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(amount > stakingAmount) {
             vm.expectRevert(
-                bytes("hPAL: Amount over balance")
+                bytes4(keccak256(bytes("AmountExceedBalance()")))
             );
             vm.prank(locker);
             hpal.lock(amount, lockDuration);
@@ -145,7 +145,7 @@ contract LockingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(locker);
             hpal.lock(amount, lockDuration);
@@ -161,7 +161,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(amount > stakingAmount) {
             vm.expectRevert(
-                bytes("hPAL: Amount over balance")
+                bytes4(keccak256(bytes("AmountExceedBalance()")))
             );
             vm.prank(locker);
             hpal.lock(amount, lockDuration);
@@ -177,7 +177,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(amount < lockAmount) {
             vm.expectRevert(
-                bytes("hPAL: smaller amount")
+                bytes4(keccak256(bytes("SmallerAmount()")))
             );
             vm.prank(locker);
             hpal.lock(amount, lockDuration);
@@ -229,7 +229,7 @@ contract LockingHPALTest is DSTest {
 
         if(duration < hpal.MIN_LOCK_DURATION()){
             vm.expectRevert(
-                bytes("hPAL: Lock duration under min")
+                bytes4(keccak256(bytes("DurationUnderMin()")))
             );
             vm.prank(locker);
             hpal.lock(lockAmount, duration);
@@ -245,7 +245,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(duration > hpal.MAX_LOCK_DURATION()) {
             vm.expectRevert(
-                bytes("hPAL: Lock duration over max")
+                bytes4(keccak256(bytes("DurationOverMax()")))
             );
             vm.prank(locker);
             hpal.lock(lockAmount, duration);
@@ -303,7 +303,7 @@ contract LockingHPALTest is DSTest {
 
         if(duration < hpal.MIN_LOCK_DURATION()){
             vm.expectRevert(
-                bytes("hPAL: Lock duration under min")
+                bytes4(keccak256(bytes("DurationUnderMin()")))
             );
             vm.prank(locker);
             hpal.lock(lockAmount, duration);
@@ -319,7 +319,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(duration > hpal.MAX_LOCK_DURATION()) {
             vm.expectRevert(
-                bytes("hPAL: Lock duration over max")
+                bytes4(keccak256(bytes("DurationOverMax()")))
             );
             vm.prank(locker);
             hpal.lock(lockAmount, duration);
@@ -335,7 +335,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(duration < lockDuration) {
             vm.expectRevert(
-                bytes("hPAL: smaller duration")
+                bytes4(keccak256(bytes("SmallerDuration()")))
             );
             vm.prank(locker);
             hpal.lock(lockAmount, duration);
@@ -393,7 +393,7 @@ contract LockingHPALTest is DSTest {
         
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(locker);
             hpal.increaseLock(amount);
@@ -409,7 +409,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(amount > stakingAmount) {
             vm.expectRevert(
-                bytes("hPAL: Amount over balance")
+                bytes4(keccak256(bytes("AmountExceedBalance()")))
             );
             vm.prank(locker);
             hpal.increaseLock(amount);
@@ -425,7 +425,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(amount < lockAmount) {
             vm.expectRevert(
-                bytes("hPAL: smaller amount")
+                bytes4(keccak256(bytes("SmallerAmount()")))
             );
             vm.prank(locker);
             hpal.increaseLock(amount);
@@ -483,7 +483,7 @@ contract LockingHPALTest is DSTest {
         
         if(duration < hpal.MIN_LOCK_DURATION()){
             vm.expectRevert(
-                bytes("hPAL: Lock duration under min")
+                bytes4(keccak256(bytes("DurationUnderMin()")))
             );
             vm.prank(locker);
             hpal.increaseLockDuration(duration);
@@ -499,7 +499,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(duration > hpal.MAX_LOCK_DURATION()) {
             vm.expectRevert(
-                bytes("hPAL: Lock duration over max")
+                bytes4(keccak256(bytes("DurationOverMax()")))
             );
             vm.prank(locker);
             hpal.increaseLockDuration(duration);
@@ -515,7 +515,7 @@ contract LockingHPALTest is DSTest {
         }
         else if(duration < lockDuration) {
             vm.expectRevert(
-                bytes("hPAL: smaller duration")
+                bytes4(keccak256(bytes("SmallerDuration()")))
             );
             vm.prank(locker);
             hpal.increaseLockDuration(duration);
@@ -659,7 +659,7 @@ contract LockingHPALTest is DSTest {
 
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(locker);
             hpal.stakeAndLock(amount, 31536000);
@@ -760,7 +760,7 @@ contract LockingHPALTest is DSTest {
         
         if(amount == 0){
             vm.expectRevert(
-                bytes("hPAL: Null amount")
+                bytes4(keccak256(bytes("NullAmount()")))
             );
             vm.prank(locker);
             hpal.stakeAndIncreaseLock(amount, 31536000);
@@ -850,7 +850,7 @@ contract LockingHPALTest is DSTest {
 
         if(amount > previousAvailableBalanceLocker) {
             vm.expectRevert(
-                bytes("hPAL: Available balance too low")
+                bytes4(keccak256(bytes("AvailableBalanceTooLow()")))
             );
             vm.prank(locker);
             hpal.transfer(receiver, amount);

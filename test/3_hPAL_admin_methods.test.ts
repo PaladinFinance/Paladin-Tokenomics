@@ -93,7 +93,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
         expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
         expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
-        expect(await hPAL.kickRatioPerWeek()).to.be.eq(1000)
+        expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
         expect(await hPAL.emergency()).to.be.false
 
@@ -212,7 +212,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(user_balance, user1.address)
-            ).to.be.revertedWith('hPAL: Not emergency')
+            ).to.be.revertedWith('NotEmergency')
 
         });
 
@@ -457,11 +457,11 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(0, user1.address)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 hPAL.connect(user1).emergencyWithdraw(user_balance, ethers.constants.AddressZero)
-            ).to.be.revertedWith('hPAL: Address Zero')
+            ).to.be.revertedWith('AddressZero')
 
         });
 

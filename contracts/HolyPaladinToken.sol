@@ -95,10 +95,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     mapping(address => DelegateCheckpoint[]) public delegateCheckpoints;
 
     /** @notice Ratio (in BPS) of locked balance applied of penalty for each week over lock end  */
-    uint256 public kickRatioPerWeek = 1000;
+    uint256 public kickRatioPerWeek = 100;
 
     /** @notice Ratio of bonus votes applied on user locked balance  */
-    uint256 public bonusLockVoteRatio = 0.5e18;
+    uint256 public constant bonusLockVoteRatio = 0.5e18;
 
     /** @notice Allow emergency withdraws  */
     bool public emergency = false;
@@ -106,10 +106,16 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Address of the vault holding the PAL rewards  */
     address public immutable rewardsVault;
 
-    /** @notice Global reward index  */
-    uint256 public rewardIndex;
-    /** @notice Timstamp of last update for global reward index  */
-    uint256 public lastRewardUpdate;
+    /** @notice Struct of Reward State (global or user)  */
+    struct RewardState {
+        // Reward Index
+        uint128 index;
+        // Timestamp last update for reward state
+        uint128 lastUpdate;
+    }
+
+    /** @notice Global reward state  */
+    RewardState public globalRewards;
 
     /** @notice Amount of rewards distributed per second at the start  */
     uint256 public immutable startDropPerSecond;
@@ -124,12 +130,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Timestamp: start of the DropPerSecond decrease period  */
     uint256 public immutable startDropTimestamp;
 
-    /** @notice Last reward index for each user  */
-    mapping(address => uint256) public userRewardIndex;
+    /** @notice Reward state for each user  */
+    mapping(address => RewardState) public userRewardStates;
     /** @notice Current amount of rewards claimable for the user  */
     mapping(address => uint256) public claimableRewards;
-    /** @notice Timestamp of last update for user rewards  */
-    mapping(address => uint256) public rewardsLastUpdate;
 
     /** @notice Base reward multiplier for lock  */
     uint256 public immutable baseLockBonusRatio;
@@ -142,15 +146,33 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     mapping(address => uint256) public userCurrentBonusRatio;
     /** @notice Value by which user Bonus Ratio decrease each second  */
     mapping(address => uint256) public userBonusRatioDecrease;
-
+    
     /** @notice Address of the currect SmartWalletChecker  */
     address public smartWalletChecker;
     /** @notice Address of the future SmartWalletChecker  */
     address public futureSmartWalletChecker;
 
-
+    error NoBalance();
+    error NullAmount();
+    error IncorrectAmount();
+    error AddressZero();
+    error AvailableBalanceTooLow();
+    error NoLock();
+    error EmptyLock();
+    error InvalidBlockNumber();
+    error InsufficientCooldown();
+    error UnstakePeriodExpired();
+    error AmountExceedBalance();
+    error DurationOverMax();
+    error DurationUnderMin();
+    error SmallerAmount();
+    error SmallerDuration();
+    error LockNotExpired();
+    error LockNotKickable();
+    error CannotSelfKick();
+    error NotEmergency();
     /** @notice Error raised if contract is turned in emergency mode */
-    error EmergencyBlock(); 
+    error EmergencyBlock();
 
     error ContractNotAllowed(); 
 
@@ -178,7 +200,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     event EmergencyUnstake(address indexed user, uint256 amount);
 
     constructor(
-        address palToken,
+        address _palToken,
         address _admin,
         address _rewardsVault,
         address _smartWalletChecker,
@@ -189,10 +211,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         uint256 _minLockBonusRatio,
         uint256 _maxLockBonusRatio
     ){
-        require(palToken != address(0));
+        require(_palToken != address(0));
         require(_admin != address(0));
+        require(_rewardsVault != address(0));
 
-        pal = IERC20(palToken);
+        pal = IERC20(_palToken);
 
         _transferOwnership(_admin);
 
@@ -216,12 +239,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         dropDecreaseDuration = _dropDecreaseDuration;
 
+        require(_baseLockBonusRatio != 0);
+        require(_minLockBonusRatio >= _baseLockBonusRatio);
+        require(_maxLockBonusRatio >= _minLockBonusRatio);
         baseLockBonusRatio = _baseLockBonusRatio;
         minLockBonusRatio = _minLockBonusRatio;
         maxLockBonusRatio = _maxLockBonusRatio;
 
         // Set all update timestamp as contract creation timestamp
-        lastRewardUpdate = block.timestamp;
+        globalRewards.lastUpdate = safe128(block.timestamp);
         lastDropUpdate = block.timestamp;
         // Start the reward distribution & DropPerSecond decrease
         startDropTimestamp = block.timestamp;
@@ -243,7 +269,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function cooldown() external {
         if(emergency) revert EmergencyBlock();
-        require(balanceOf(msg.sender) > 0, "hPAL: No balance");
+        if(balanceOf(msg.sender) == 0) revert NoBalance();
 
         // Set the current timestamp as start of the user cooldown
         cooldowns[msg.sender] = block.timestamp;
@@ -288,10 +314,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         if(emergency) revert EmergencyBlock();
         //Check if caller is allowed
         _assertNotContract(msg.sender);
-        require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
+        if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
-        uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
-        UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
+        UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
+        if(currentUserLock.amount == 0) revert EmptyLock();
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         // Call the _lock method with the current amount, and the new duration
@@ -306,10 +332,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         if(emergency) revert EmergencyBlock();
         //Check if caller is allowed
         _assertNotContract(msg.sender);
-        require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
+        if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
-        uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
-        UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
+        UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
+        if(currentUserLock.amount == 0) revert EmptyLock();
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         // Call the _lock method with the current duration, and the new amount
@@ -321,7 +347,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function unlock() external {
         if(emergency) revert EmergencyBlock();
-        require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
+        if(userLocks[msg.sender].length == 0) revert NoLock();
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         _unlock(msg.sender);
@@ -333,7 +359,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function kick(address user) external {
         if(emergency) revert EmergencyBlock();
-        require(msg.sender != user, "hPAL: cannot kick yourself");
+        if(msg.sender == user) revert CannotSelfKick();
         // Update user rewards before any change on their balance (staked and locked)
         // For both the user and the kicker
         _updateUserRewards(user);
@@ -372,10 +398,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         if(emergency) revert EmergencyBlock();
         //Check if caller is allowed
         _assertNotContract(msg.sender);
-        require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
+        if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
         uint256 previousLockAmount = userLocks[msg.sender][currentUserLockIndex].amount;
+        if(previousLockAmount == 0) revert EmptyLock();
         // Stake the new amount
         uint256 stakedAmount = _stake(msg.sender, amount);
         // No need to update user rewards since it's done through the _stake() method
@@ -397,7 +424,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function delegate(address delegatee) external virtual {
         if(emergency) revert EmergencyBlock();
-        return _delegate(_msgSender(), delegatee);
+        return _delegate(msg.sender, delegatee);
     }
 
     /**
@@ -409,14 +436,17 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
 
-        require(amount > 0, "hPAL: incorrect amount");
+        if(amount == 0) revert IncorrectAmount();
 
         // Cannot claim more than accrued rewards, but we can use a higher amount to claim all the rewards
         uint256 claimAmount = amount < claimableRewards[msg.sender] ? amount : claimableRewards[msg.sender];
 
+        // Nothing to claim
+        if(claimAmount == 0) return;
+
         // remove the claimed amount from the claimable mapping for the user, 
         // and transfer the PAL from the rewardsVault to the user
-        claimableRewards[msg.sender] -= claimAmount;
+        unchecked{ claimableRewards[msg.sender] -= claimAmount; }
 
         pal.safeTransferFrom(rewardsVault, msg.sender, claimAmount);
 
@@ -450,14 +480,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @return uint256 : new cooldown
      */
     function getNewReceiverCooldown(address sender, address receiver, uint256 amount) external view returns(uint256) {
-        uint256 senderCooldown = cooldowns[sender];
-        uint256 receiverBalance = balanceOf(receiver);
-
         return _getNewReceiverCooldown(
-            senderCooldown,
+            cooldowns[sender],
             amount,
             receiver,
-            receiverBalance
+            balanceOf(receiver)
         );
     }
 
@@ -480,8 +507,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         //Or if the user does not have a Lock yet
         //Return an empty lock
         if(emergency || userLocks[user].length == 0) return UserLock(0, 0, 0, 0);
-        uint256 lastUserLockIndex = userLocks[user].length - 1;
-        return userLocks[user][lastUserLockIndex];
+        return userLocks[user][userLocks[user].length - 1];
     }
 
     /**
@@ -520,10 +546,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @return TotalLock : past TotalLock
      */
     function getPastTotalLock(uint256 blockNumber) external view returns(TotalLock memory) {
-        require(
-            blockNumber < block.number,
-            "hPAL: invalid blockNumber"
-        );
+        if(blockNumber >= block.number) revert InvalidBlockNumber();
 
         TotalLock memory emptyLock = TotalLock(
             0,
@@ -543,7 +566,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
 
         uint256 high = nbCheckpoints - 1; // last checkpoint already checked
-        uint256 low = 0;
+        uint256 low;
         uint256 mid;
         while (low < high) {
             mid = Math.average(low, high);
@@ -580,14 +603,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         uint256 locked,
         uint256 available
     ) {
+        uint256 userBalance = balanceOf(user);
         // If the contract was blocked (emergency mode) or
         // If the user has no Lock
         // then available == staked
         if(emergency || userLocks[user].length == 0) {
             return(
-                balanceOf(user),
+                userBalance,
                 0,
-                balanceOf(user)
+                userBalance
             );
         }
         // If a Lock exists
@@ -597,9 +621,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // available balance (staked - locked)
         uint256 lastUserLockIndex = userLocks[user].length - 1;
         return(
-            balanceOf(user),
+            userBalance,
             uint256(userLocks[user][lastUserLockIndex].amount),
-            balanceOf(user) - uint256(userLocks[user][lastUserLockIndex].amount)
+            userBalance - uint256(userLocks[user][lastUserLockIndex].amount)
         );
     }
 
@@ -613,23 +637,40 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // & in case of emergency mode, show 0
         if(emergency || user == address(0)) return 0;
         // If the user rewards where updated on that block, then return the last updated value
-        if(rewardsLastUpdate[user] == block.timestamp) return claimableRewards[user];
+        RewardState memory currentUserRewardState = userRewardStates[user];
+        if(currentUserRewardState.lastUpdate == block.timestamp) return claimableRewards[user];
 
         // Get the user current claimable amount
         uint256 estimatedClaimableRewards = claimableRewards[user];
         // Get the last updated reward index
-        uint256 currentRewardIndex = rewardIndex;
+        uint256 currentRewardIndex = currentUserRewardState.index;
 
-        if(lastRewardUpdate < block.timestamp){
+        if(currentUserRewardState.lastUpdate < block.timestamp){
             // If needed, update the reward index
             currentRewardIndex = _getNewIndex(currentDropPerSecond);
         }
 
-        (uint256 accruedRewards,) = _getUserAccruedRewards(user, currentRewardIndex);
+        (uint256 accruedRewards,) = _getUserAccruedRewards(user, currentUserRewardState, currentRewardIndex);
 
         estimatedClaimableRewards += accruedRewards;
 
         return estimatedClaimableRewards;
+    }
+
+    function rewardIndex() external view returns (uint256) {
+        return globalRewards.index;
+    }
+
+    function lastRewardUpdate() external view returns (uint256) {
+        return globalRewards.lastUpdate;
+    }
+
+    function userRewardIndex(address user) external view returns (uint256) {
+        return userRewardStates[user].index;
+    }
+
+    function rewardsLastUpdate(address user) external view returns (uint256) {
+        return userRewardStates[user].lastUpdate;
     }
 
     /**
@@ -695,10 +736,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         view
         returns (address)
     {
-        require(
-            blockNumber < block.number,
-            "hPAL: invalid blockNumber"
-        );
+        if(blockNumber >= block.number) revert InvalidBlockNumber();
 
         // no checkpoints written
         uint256 nbCheckpoints = delegateCheckpoints[account].length;
@@ -715,7 +753,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
 
         uint256 high = nbCheckpoints - 1; // last checkpoint already checked
-        uint256 low = 0;
+        uint256 low;
         uint256 mid;
         while (low < high) {
             mid = Math.average(low, high);
@@ -751,8 +789,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     // Find the user available balance (staked - locked) => the balance that can be transfered
     function _availableBalanceOf(address user) internal view returns(uint256) {
         if(userLocks[user].length == 0) return balanceOf(user);
-        uint256 lastUserLockIndex = userLocks[user].length - 1;
-        return balanceOf(user) - uint256(userLocks[user][lastUserLockIndex].amount);
+        return balanceOf(user) - uint256(userLocks[user][userLocks[user].length - 1].amount);
     }
 
     // Update dropPerSecond value
@@ -792,93 +829,84 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     function _getNewIndex(uint256 _currentDropPerSecond) internal view returns (uint256){
         // Get the current total Supply
         uint256 currentTotalSupply = totalSupply();
-        // and the seconds since the last update
-        uint256 ellapsedTime = block.timestamp - lastRewardUpdate;
+        // and the current global Reward State
+        RewardState memory currentRewardState = globalRewards;
 
         // DropPerSeond without any multiplier => the base dropPerSecond for stakers
         // The multiplier for LockedBalance is applied later, accruing more rewards depending on the Lock.
         uint256 baseDropPerSecond = (_currentDropPerSecond * UNIT) / maxLockBonusRatio;
 
         // total base reward (without multiplier) to be distributed since last update
-        uint256 accruedBaseAmount = ellapsedTime * baseDropPerSecond;
+        uint256 accruedBaseAmount = (block.timestamp - currentRewardState.lastUpdate) * baseDropPerSecond;
 
          // calculate the ratio to add to the index
         uint256 ratio = currentTotalSupply > 0 ? (accruedBaseAmount * UNIT) / currentTotalSupply : 0;
 
-        return rewardIndex + ratio;
+        return currentRewardState.index + ratio;
     }
 
     // Update global reward state internal
     function _updateRewardState() internal returns (uint256){
-        if(lastRewardUpdate == block.timestamp) return rewardIndex; // Already updated for this block
+        RewardState storage globalRewardState = globalRewards;
+        if(globalRewardState.lastUpdate == block.timestamp) return globalRewardState.index; // Already updated for this block
 
         // Update (if needed) & get the current DropPerSecond
         uint256 _currentDropPerSecond = _updateDropPerSecond();
 
         // Update the index
         uint256 newIndex = _getNewIndex(_currentDropPerSecond);
-        rewardIndex = newIndex;
-        lastRewardUpdate = block.timestamp;
+        globalRewardState.index = safe128(newIndex);
+        globalRewardState.lastUpdate = safe128(block.timestamp);
 
         return newIndex;
     }
 
-    struct UserLockRewardVars {
-        uint256 lastUserLockIndex;
-        uint256 previousBonusRatio;
-        uint256 userRatioDecrease;
-        uint256 bonusRatioDecrease;
-        uint256 periodBonusRatio;
-    }
-
     function _getUserAccruedRewards(
         address user,
+        RewardState memory userRewardState,
         uint256 currentRewardsIndex
     ) internal view returns(
         uint256 accruedRewards,
         uint256 newBonusRatio
     ) {
         // Find the user last index & current balances
-        uint256 userLastIndex = userRewardIndex[user];
+        uint256 userLastIndex = userRewardState.index;
         uint256 userStakedBalance = _availableBalanceOf(user);
-        uint256 userLockedBalance = 0;
+        uint256 userLockedBalance;
 
         if(userLastIndex != currentRewardsIndex){
 
-            if(balanceOf(user) > 0){
+            if(balanceOf(user) != 0){
                 // calculate the base rewards for the user staked balance
                 // (using avaialable balance to count the locked balance with the multiplier later in this function)
                 uint256 indexDiff = currentRewardsIndex - userLastIndex;
 
-                uint256 stakingRewards = (userStakedBalance * indexDiff) / UNIT;
+                uint256 lockingRewards;
 
-                uint256 lockingRewards = 0;
-
-                if(userLocks[user].length > 0){
-                    UserLockRewardVars memory vars;
+                if(userLocks[user].length != 0){
 
                     // and if an user has a lock, calculate the locked rewards
-                    vars.lastUserLockIndex = userLocks[user].length - 1;
+                    uint256 lastUserLockIndex = userLocks[user].length - 1;
 
                     // using the locked balance, and the lock duration
-                    userLockedBalance = uint256(userLocks[user][vars.lastUserLockIndex].amount);
+                    userLockedBalance = uint256(userLocks[user][lastUserLockIndex].amount);
 
                     // Check that the user's Lock is not empty
-                    if(userLockedBalance > 0 && userLocks[user][vars.lastUserLockIndex].duration != 0){
-                        vars.previousBonusRatio = userCurrentBonusRatio[user];
+                    if(userLockedBalance != 0 && userLocks[user][lastUserLockIndex].duration != 0){
+                        uint256 previousBonusRatio = userCurrentBonusRatio[user];
 
-                        if(vars.previousBonusRatio > 0){
-                            vars.userRatioDecrease = userBonusRatioDecrease[user];
+                        if(previousBonusRatio > 0){
+                            uint256 userRatioDecrease = userBonusRatioDecrease[user];
                             // Find the new multiplier for user:
                             // From the last Ratio, where we remove userBonusRatioDecrease for each second since last update
-                            vars.bonusRatioDecrease = (block.timestamp - rewardsLastUpdate[user]) * vars.userRatioDecrease;
+                            uint256 bonusRatioDecrease = (block.timestamp - userRewardState.lastUpdate) * userRatioDecrease;
                             
-                            newBonusRatio = vars.bonusRatioDecrease >= vars.previousBonusRatio ? 0 : vars.previousBonusRatio - vars.bonusRatioDecrease;
+                            newBonusRatio = bonusRatioDecrease >= previousBonusRatio ? 0 : previousBonusRatio - bonusRatioDecrease;
 
-                            if(vars.bonusRatioDecrease >= vars.previousBonusRatio){
+                            if(bonusRatioDecrease >= previousBonusRatio){
                                 // Since the last update, bonus ratio decrease under 0
                                 // We count the bonusRatioDecrease as the difference between the last Bonus Ratio and 0
-                                vars.bonusRatioDecrease = vars.previousBonusRatio;
+                                bonusRatioDecrease = previousBonusRatio;
                                 // In the case this update is made far after the end of the lock, this method would mean
                                 // the user could get a multiplier for longer than expected
                                 // We count on the Kick logic to avoid that scenario
@@ -886,37 +914,43 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
                             // and calculate the locking rewards based on the locked balance & 
                             // a ratio based on the rpevious one and the newly calculated one
-                            vars.periodBonusRatio = newBonusRatio + ((vars.userRatioDecrease + vars.bonusRatioDecrease) / 2);
+                            uint256 periodBonusRatio = newBonusRatio + ((userRatioDecrease + bonusRatioDecrease) / 2);
                             lockingRewards = ((userLockedBalance * (indexDiff * vars.periodBonusRatio)) / UNIT) / UNIT;
                         }
                     }
 
                 }
-                // sum up the accrued rewards, and return it
-                accruedRewards = stakingRewards + lockingRewards;
+                // calculate the staking rewards
+                // sum it up with locking rewards, and return it
+                accruedRewards = ((userStakedBalance * indexDiff) / UNIT) + lockingRewards;
             }
         }
     }
 
     // Update user reward state internal
     function _updateUserRewards(address user) internal {
+        // In emergency mode, do not accrue rewards for users anymore
+        if(emergency) return();
+
         // Update the global reward state and get the latest index
         uint256 newIndex = _updateRewardState();
 
         // Called for minting & burning, but we don't want to update for address 0x0
         if(user == address(0)) return;
 
-        if(rewardsLastUpdate[user] == block.timestamp) return; // Already updated for this block
+        RewardState storage userRewardState = userRewardStates[user];
+
+        if(userRewardState.lastUpdate == block.timestamp) return; // Already updated for this block
 
         // Update the user claimable rewards
-        (uint256 accruedRewards, uint256 newBonusRatio) = _getUserAccruedRewards(user, newIndex);
+        (uint256 accruedRewards, uint256 newBonusRatio) = _getUserAccruedRewards(user, userRewardState, newIndex);
         claimableRewards[user] += accruedRewards;
         // Store the new Bonus Ratio
         userCurrentBonusRatio[user] = newBonusRatio;
         
         // and set the current timestamp for last update, and the last used index for the user rewards
-        rewardsLastUpdate[user] = block.timestamp;
-        userRewardIndex[user] = newIndex;
+        userRewardState.lastUpdate = safe128(block.timestamp);
+        userRewardState.index = safe128(newIndex);
 
     }
 
@@ -928,26 +962,25 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     ) internal virtual override {
         if(from != address(0)) { //check must be skipped on minting
             // Only allow the balance that is unlocked to be transfered
-            require(amount <= _availableBalanceOf(from), "hPAL: Available balance too low");
+            if(amount > _availableBalanceOf(from)) revert AvailableBalanceTooLow();
         }
 
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(from);
 
         uint256 fromCooldown = cooldowns[from]; //If from is address 0x00...0, cooldown is always 0 
-
+        
         if(from != to) {
             // Update user rewards before any change on their balance (staked and locked)
             _updateUserRewards(to);
             // => we don't want a self-transfer to double count new claimable rewards
             // + no need to update the cooldown on a self-transfer
 
-            uint256 previousToBalance = balanceOf(to);
-            cooldowns[to] = _getNewReceiverCooldown(fromCooldown, amount, to, previousToBalance);
+            cooldowns[to] = _getNewReceiverCooldown(fromCooldown, amount, to, balanceOf(to));
 
             // If from transfer all of its balance, reset the cooldown to 0
             uint256 previousFromBalance = balanceOf(from);
-            if(previousFromBalance == amount && fromCooldown != 0) {
+            if(balanceOf(from) == amount && fromCooldown != 0) {
                 cooldowns[from] = 0;
             }
         }
@@ -963,10 +996,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     }
 
     function _getPastLock(address account, uint256 blockNumber) internal view returns(UserLock memory) {
-        require(
-            blockNumber < block.number,
-            "hPAL: invalid blockNumber"
-        );
+        if(blockNumber >= block.number) revert InvalidBlockNumber();
 
         UserLock memory emptyLock = UserLock(
             0,
@@ -990,7 +1020,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
 
         uint256 high = nbCheckpoints - 1; // last checkpoint already checked
-        uint256 low = 0;
+        uint256 low;
         uint256 mid;
         while (low < high) {
             mid = Math.average(low, high);
@@ -1007,7 +1037,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     }
 
     function _getPastVotes(address account, uint256 blockNumber) internal view returns (uint256){
-        require( blockNumber < block.number, "hPAL: invalid blockNumber");
+        if(blockNumber >= block.number) revert InvalidBlockNumber();
 
         // no checkpoints written
         uint256 nbCheckpoints = checkpoints[account].length;
@@ -1022,7 +1052,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         if (checkpoints[account][0].fromBlock > blockNumber) return 0;
 
         uint256 high = nbCheckpoints - 1; // last checkpoint already checked
-        uint256 low = 0;
+        uint256 low;
         uint256 mid;
         while (low < high) {
             mid = Math.average(low, high);
@@ -1038,40 +1068,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         return high == 0 ? 0 : checkpoints[account][high - 1].votes;
     }
 
-    function _getPastDelegate(address account, uint256 blockNumber) internal view returns (address) {
-        require(blockNumber < block.number, "hPAL: invalid blockNumber");
-
-        // no checkpoints written
-        uint256 nbCheckpoints = delegateCheckpoints[account].length;
-        if (nbCheckpoints == 0) return address(0);
-
-        // last checkpoint check
-        if (delegateCheckpoints[account][nbCheckpoints - 1].fromBlock <= blockNumber) {
-            return delegateCheckpoints[account][nbCheckpoints - 1].delegate;
-        }
-
-        // no checkpoint old enough
-        if (delegateCheckpoints[account][0].fromBlock > blockNumber) return address(0);
-
-        uint256 high = nbCheckpoints - 1; // last checkpoint already checked
-        uint256 low = 0;
-        uint256 mid;
-        while (low < high) {
-            mid = Math.average(low, high);
-            if (delegateCheckpoints[account][mid].fromBlock == blockNumber) {
-                return delegateCheckpoints[account][mid].delegate;
-            }
-            if (delegateCheckpoints[account][mid].fromBlock > blockNumber) {
-                high = mid;
-            } else {
-                low = mid + 1;
-            }
-        }
-        return high == 0 ? address(0) : delegateCheckpoints[account][high - 1].delegate;
-    }
-
     function _moveDelegates(address from, address to, uint256 amount) internal {
-        if (from != to && amount > 0) {
+        if (from != to && amount != 0) {
             if (from != address(0)) {
                 // Calculate the change in voting power, then write a new checkpoint
                 uint256 nbCheckpoints = checkpoints[from].length;
@@ -1143,7 +1141,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     // -----------------
 
     function _stake(address user, uint256 amount) internal returns(uint256) {
-        require(amount > 0, "hPAL: Null amount");
+        if(amount == 0) revert NullAmount();
 
         // No need to update user rewards here since the _mint() method will trigger _beforeTokenTransfer()
         // Same for the Cooldown update, as it will be handled by _beforeTokenTransfer()    
@@ -1159,19 +1157,21 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     }
 
     function _unstake(address user, uint256 amount, address receiver) internal returns(uint256) {
-        require(amount > 0, "hPAL: Null amount");
-        require(receiver != address(0), "hPAL: Address Zero");
+        if(amount == 0) revert NullAmount();
+        if(receiver == address(0)) revert AddressZero();
 
         // Check if user in inside the allowed period base on its cooldown
         uint256 userCooldown = cooldowns[user];
-        require(block.timestamp > (userCooldown + COOLDOWN_PERIOD), "hPAL: Insufficient cooldown");
-        require(block.timestamp - (userCooldown + COOLDOWN_PERIOD) <= UNSTAKE_PERIOD, "hPAL: unstake period expired");
+        if(block.timestamp <= (userCooldown + COOLDOWN_PERIOD)) revert InsufficientCooldown();
+        if(block.timestamp - (userCooldown + COOLDOWN_PERIOD) > UNSTAKE_PERIOD) revert UnstakePeriodExpired();
 
         // No need to update user rewards here since the _burn() method will trigger _beforeTokenTransfer()
 
         // Can only unstake was is available, need to unlock before
         uint256 userAvailableBalance = _availableBalanceOf(user);
         uint256 burnAmount = amount > userAvailableBalance ? userAvailableBalance : amount;
+
+        if(burnAmount == 0) revert AvailableBalanceTooLow();
 
         // Burn the hPAL 1:1 with PAL
         _burn(user, burnAmount);
@@ -1223,11 +1223,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
     function _lock(address user, uint256 amount, uint256 duration, LockAction action) internal {
         require(user != address(0)); //Never supposed to happen, but security check
-        require(amount != 0, "hPAL: Null amount");
+        if(amount == 0) revert NullAmount();
         uint256 userBalance = balanceOf(user);
-        require(amount <= userBalance, "hPAL: Amount over balance");
-        require(duration >= MIN_LOCK_DURATION, "hPAL: Lock duration under min");
-        require(duration <= MAX_LOCK_DURATION, "hPAL: Lock duration over max");
+        if(amount > userBalance) revert AmountExceedBalance();
+        if(duration < MIN_LOCK_DURATION) revert DurationUnderMin();
+        if(duration > MAX_LOCK_DURATION) revert DurationOverMax();
 
         if(userLocks[user].length == 0){
             //User 1st Lock
@@ -1254,8 +1254,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         } 
         else {
             // Get the current user Lock
-            uint256 currentUserLockIndex = userLocks[user].length - 1;
-            UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
+            UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
             // Calculate the end of the user current lock
             uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
@@ -1270,8 +1269,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             else {
                 // Update of the current Lock : increase amount or increase duration
                 // or renew with the same parameters, but starting at the current timestamp
-                require(amount >=  currentUserLock.amount,"hPAL: smaller amount");
-                require(duration >=  currentUserLock.duration,"hPAL: smaller duration");
+                if(amount <  currentUserLock.amount) revert SmallerAmount();
+                if(duration <  currentUserLock.duration) revert SmallerDuration();
 
                 // If the method is called with INCREASE_AMOUNT, then we don't change the startTimestamp of the Lock
                 startTimestamp = action == LockAction.INCREASE_AMOUNT ? currentUserLock.startTimestamp : startTimestamp;
@@ -1303,16 +1302,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
     function _unlock(address user) internal {
         require(user != address(0)); //Never supposed to happen, but security check
-        require(userLocks[user].length > 0, "hPAL: No Lock");
+        if(userLocks[user].length == 0) revert NoLock();
 
         // Get the user current Lock
         // And calculate the end of the Lock
-        uint256 currentUserLockIndex = userLocks[user].length - 1;
-        UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
+        UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
-        require(block.timestamp > userCurrentLockEnd, "hPAL: Not expired");
-        require(currentUserLock.amount > 0, "hPAL: No Lock");
+        if(block.timestamp <= userCurrentLockEnd) revert LockNotExpired();
+        if(currentUserLock.amount == 0) revert EmptyLock();
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
@@ -1329,19 +1327,18 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     }
 
     function _kick(address user, address kicker) internal {
-        require(user != address(0) && kicker != address(0), "hPAL: Address Zero");
-        require(userLocks[user].length > 0, "hPAL: No Lock");
+        if(user == address(0) || kicker == address(0)) revert AddressZero();
+        if(userLocks[user].length == 0) revert NoLock();
 
         // Get the user to kick current Lock
         // and calculate the end of the Lock
-        uint256 currentUserLockIndex = userLocks[user].length - 1;
-        UserLock memory currentUserLock = userLocks[user][currentUserLockIndex];
+        UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
-        require(block.timestamp > userCurrentLockEnd, "hPAL: Not expired");
-        require(currentUserLock.amount > 0, "hPAL: No Lock");
+        if(block.timestamp <= userCurrentLockEnd) revert LockNotExpired();
+        if(currentUserLock.amount == 0) revert EmptyLock();
 
-        require(block.timestamp > userCurrentLockEnd + UNLOCK_DELAY, "hPAL: Not kickable");
+        if(block.timestamp <= userCurrentLockEnd + UNLOCK_DELAY) revert LockNotKickable();
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
@@ -1396,15 +1393,14 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function emergencyWithdraw(uint256 amount, address receiver) external returns(uint256) {
 
-        require(emergency, "hPAL: Not emergency");
+        if(!emergency) revert NotEmergency();
 
-        require(amount > 0, "hPAL: Null amount");
-        require(receiver != address(0), "hPAL: Address Zero");
+        if(amount == 0) revert NullAmount();
+        if(receiver == address(0)) revert AddressZero();
 
         if(userLocks[msg.sender].length != 0){
             // Check if the user has a Lock, and if so, fetch it
-            uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
-            UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
+            UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
 
             // No need to remove the last Lock if already empty
             if(currentUserLock.amount != 0 && currentUserLock.duration > 0){

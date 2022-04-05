@@ -94,7 +94,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         expect(await hPAL.pal()).to.be.eq(token.address)
 
-        expect(await hPAL.kickRatioPerWeek()).to.be.eq(1000)
+        expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
         expect(await hPAL.emergency()).to.be.false
         
@@ -423,19 +423,19 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).lock(lock_amount, lower_duration)
-            ).to.be.revertedWith('hPAL: Lock duration under min')
+            ).to.be.revertedWith('DurationUnderMin')
 
             await expect(
                 hPAL.connect(user1).lock(lock_amount, bigger_duration)
-            ).to.be.revertedWith('hPAL: Lock duration over max')
+            ).to.be.revertedWith('DurationOverMax')
 
         });
 
-        it(' should fail if given null amount', async () => {
+        it(' should fail if given NullAmount', async () => {
 
             await expect(
                 hPAL.connect(user1).lock(0, lock_duration)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -443,7 +443,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).lock(lock_amount, lock_duration)
-            ).to.be.revertedWith('hPAL: Amount over balance')
+            ).to.be.revertedWith('AmountExceedBalance')
 
         });
 
@@ -453,7 +453,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).lock(user_balance.add(1), lock_duration)
-            ).to.be.revertedWith('hPAL: Amount over balance')
+            ).to.be.revertedWith('AmountExceedBalance')
 
         });
 
@@ -465,7 +465,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).lock(lock_amount.add(extra_amount.add(10)), lock_duration)
-            ).to.be.revertedWith('hPAL: Amount over balance')
+            ).to.be.revertedWith('AmountExceedBalance')
 
         });
 
@@ -475,11 +475,11 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).lock(smaller_lock_amount, lock_duration)
-            ).to.be.revertedWith('hPAL: smaller amount')
+            ).to.be.revertedWith('SmallerAmount')
 
             await expect(
                 hPAL.connect(user1).lock(lock_amount, smaller_lock_duration)
-            ).to.be.revertedWith('hPAL: smaller duration')
+            ).to.be.revertedWith('SmallerDuration')
 
         });
 
@@ -731,11 +731,27 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         });
 
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).increaseLock(bigger_lock_amount)
+            ).to.be.revertedWith('EmptyLock')
+
+        });
+
         it(' should fail if no lock exists for the user', async () => {
 
             await expect(
                 hPAL.connect(user2).increaseLock(bigger_lock_amount)
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('NoLock')
 
         });
 
@@ -743,7 +759,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).increaseLock(smaller_lock_amount)
-            ).to.be.revertedWith('hPAL: smaller amount')
+            ).to.be.revertedWith('SmallerAmount')
 
         });
 
@@ -826,7 +842,23 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).increaseLockDuration(bigger_lock_duration)
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('NoLock')
+
+        });
+
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).increaseLockDuration(bigger_lock_duration)
+            ).to.be.revertedWith('EmptyLock')
 
         });
 
@@ -834,7 +866,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).increaseLockDuration(smaller_lock_duration)
-            ).to.be.revertedWith('hPAL: smaller duration')
+            ).to.be.revertedWith('SmallerDuration')
 
         });
 
@@ -935,7 +967,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).unlock()
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('NoLock')
 
         });
 
@@ -965,7 +997,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).unlock()
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('EmptyLock')
 
         });
 
@@ -973,13 +1005,13 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).unlock()
-            ).to.be.revertedWith('hPAL: Not expired')
+            ).to.be.revertedWith('LockNotExpired')
 
             await advanceTime(half_lock_duration)
 
             await expect(
                 hPAL.connect(user1).unlock()
-            ).to.be.revertedWith('hPAL: Not expired')
+            ).to.be.revertedWith('LockNotExpired')
 
         });
 
@@ -993,7 +1025,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).unlock()
-            ).to.be.revertedWith('hPAL: Not expired')
+            ).to.be.revertedWith('LockNotExpired')
 
         });
 
@@ -1330,7 +1362,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).kick(user1.address)
-            ).to.be.revertedWith('hPAL: cannot kick yourself')
+            ).to.be.revertedWith('CannotSelfKick')
 
         });
 
@@ -1342,7 +1374,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).kick(ethers.constants.AddressZero)
-            ).to.be.revertedWith('hPAL: Address Zero')
+            ).to.be.revertedWith('AddressZero')
 
         });
 
@@ -1358,7 +1390,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).kick(user1.address)
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('EmptyLock')
 
         });
 
@@ -1370,7 +1402,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).kick(user2.address)
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('NoLock')
 
         });
 
@@ -1380,7 +1412,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).kick(user1.address)
-            ).to.be.revertedWith('hPAL: Not expired')
+            ).to.be.revertedWith('LockNotExpired')
 
         });
 
@@ -1390,7 +1422,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).kick(user1.address)
-            ).to.be.revertedWith('hPAL: Not kickable')
+            ).to.be.revertedWith('LockNotKickable')
 
         });
 
@@ -1406,7 +1438,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).kick(user1.address)
-            ).to.be.revertedWith('hPAL: Not expired')
+            ).to.be.revertedWith('LockNotExpired')
 
             const remaining_time_to_wait = bigger_lock_duration - half_lock_duration
 
@@ -1599,7 +1631,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.getPastVotes(user2.address, currentBlock + 1000)
-            ).to.be.revertedWith('hPAL: invalid blockNumber')
+            ).to.be.revertedWith('InvalidBlockNumber')
 
         });
 
@@ -1736,7 +1768,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.getPastTotalLock(currentBlock + 1000)
-            ).to.be.revertedWith('hPAL: invalid blockNumber')
+            ).to.be.revertedWith('InvalidBlockNumber')
 
         });
 
@@ -1882,19 +1914,19 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).stakeAndLock(lock_amount, lower_duration)
-            ).to.be.revertedWith('hPAL: Lock duration under min')
+            ).to.be.revertedWith('DurationUnderMin')
 
             await expect(
                 hPAL.connect(user1).stakeAndLock(lock_amount, bigger_duration)
-            ).to.be.revertedWith('hPAL: Lock duration over max')
+            ).to.be.revertedWith('DurationOverMax')
 
         });
 
-        it(' should fail if given null amount', async () => {
+        it(' should fail if given NullAmount', async () => {
 
             await expect(
                 hPAL.connect(user1).stakeAndLock(0, lock_duration)
-            ).to.be.revertedWith('hPAL: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -2078,7 +2110,23 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user2).stakeAndIncreaseLock(extra_lock_amount, lock_duration)
-            ).to.be.revertedWith('hPAL: No Lock')
+            ).to.be.revertedWith('NoLock')
+
+        });
+
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).stakeAndIncreaseLock(extra_lock_amount, lock_duration)
+            ).to.be.revertedWith('EmptyLock')
 
         });
 
@@ -2086,7 +2134,7 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
             await expect(
                 hPAL.connect(user1).stakeAndIncreaseLock(extra_lock_amount, smaller_lock_duration)
-            ).to.be.revertedWith('hPAL: smaller duration')
+            ).to.be.revertedWith('SmallerDuration')
 
         });
 
