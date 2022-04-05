@@ -39,6 +39,7 @@ contract LockingHPALTest is DSTest {
             address(pal),
             address(this),
             address(this),
+            address(0),
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,

@@ -6,6 +6,7 @@ import "./open-zeppelin/utils/Ownable.sol";
 import "./open-zeppelin/interfaces/IERC20.sol";
 import "./open-zeppelin/libraries/SafeERC20.sol";
 import "./open-zeppelin/utils/Math.sol";
+import "./utils/SmartWalletChecker.sol";
 
 /** @title Holy Paladin Token (hPAL) contract  */
 /// @author Paladin
@@ -142,8 +143,16 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Value by which user Bonus Ratio decrease each second  */
     mapping(address => uint256) public userBonusRatioDecrease;
 
+    /** @notice Address of the currect SmartWalletChecker  */
+    address public smartWalletChecker;
+    /** @notice Address of the future SmartWalletChecker  */
+    address public futureSmartWalletChecker;
+
+
     /** @notice Error raised if contract is turned in emergency mode */
     error EmergencyBlock(); 
+
+    error ContractNotAllowed(); 
 
     // Event
 
@@ -172,6 +181,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         address palToken,
         address _admin,
         address _rewardsVault,
+        address _smartWalletChecker,
         uint256 _startDropPerSecond,
         uint256 _endDropPerSecond,
         uint256 _dropDecreaseDuration,
@@ -185,6 +195,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         pal = IERC20(palToken);
 
         _transferOwnership(_admin);
+
+        // Set the smartWalletChecker (can be address 0 if we don't want a checker at 1st)
+        smartWalletChecker = _smartWalletChecker;
 
         totalLocks.push(TotalLock(
             0,
@@ -256,6 +269,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function lock(uint256 amount, uint256 duration) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         if(delegates[msg.sender] == address(0)){
@@ -271,6 +286,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function increaseLockDuration(uint256 duration) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
@@ -287,6 +304,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function increaseLock(uint256 amount) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
@@ -330,6 +349,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function stakeAndLock(uint256 amount, uint256 duration) external returns(uint256) {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         // Stake the given amount
         uint256 stakedAmount = _stake(msg.sender, amount);
         // No need to update user rewards since it's done through the _stake() method
@@ -349,6 +370,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function stakeAndIncreaseLock(uint256 amount, uint256 duration) external returns(uint256) {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         require(userLocks[msg.sender].length != 0, "hPAL: No Lock");
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
@@ -709,6 +732,21 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     }
 
     // ----------------
+
+    // Check if caller is not a smart contract
+    // If it is a contract, check if the contract is allowed by SmartWalletChecker
+    // Revert if not allowed
+    function _assertNotContract(address addr) internal {
+        if(addr != tx.origin){
+            address checker = smartWalletChecker;
+            if(checker != address(0)){
+                if(SmartWalletChecker(checker).check(addr)){
+                    return;
+                }
+                revert ContractNotAllowed();
+            }
+        }
+    }
 
     // Find the user available balance (staked - locked) => the balance that can be transfered
     function _availableBalanceOf(address user) internal view returns(uint256) {
@@ -1461,5 +1499,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     function setEndDropPerSecond(uint256 newEndDropPerSecond) external onlyOwner {
         if(block.timestamp < startDropTimestamp + dropDecreaseDuration) revert DecreaseDurationNotOver();
         endDropPerSecond = newEndDropPerSecond;
+    }
+
+
+    function commitSmartWalletChecker(address newSmartWalletChecker) external onlyOwner {
+        futureSmartWalletChecker = newSmartWalletChecker;
+    }
+
+
+    function applySmartWalletChecker() external onlyOwner {
+        smartWalletChecker = futureSmartWalletChecker;
     }
 }
