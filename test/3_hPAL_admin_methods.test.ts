@@ -434,6 +434,13 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
             expect(user_votes).to.be.eq(0)
 
+            const current_blockNumber = ethers.provider.blockNumber
+
+            const user_past_lock = await hPAL.getUserPastLock(user1.address, current_blockNumber - 10)
+
+            expect(user_past_lock.amount).to.be.eq(0)
+            expect(user_past_lock.duration).to.be.eq(0)
+
         });
 
         it(' should fail if given incorrect parameters', async () => {
