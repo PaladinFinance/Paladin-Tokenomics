@@ -1478,6 +1478,22 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
         });
 
+        it(' transfer - should keep the cooldown is user self-transfer full balance', async () => {
+
+            await hPAL.connect(user1).stake(stake_amount)
+
+            await hPAL.connect(user1).cooldown()
+
+            await advanceTime(500)
+
+            const old_cooldown = await hPAL.cooldowns(user1.address)
+
+            await hPAL.connect(user1).transfer(user1.address, await hPAL.balanceOf(user1.address))
+
+            expect(await hPAL.cooldowns(user1.address)).to.be.eq(old_cooldown)
+
+        });
+
         it(' burn - should reset cooldown if all is unstaked', async () => {
 
             await hPAL.connect(user1).stake(stake_amount)
