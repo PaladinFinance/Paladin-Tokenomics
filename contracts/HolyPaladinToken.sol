@@ -814,14 +814,6 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         return newIndex;
     }
 
-    struct UserLockRewardVars {
-        uint256 lastUserLockIndex;
-        uint256 previousBonusRatio;
-        uint256 userRatioDecrease;
-        uint256 bonusRatioDecrease;
-        uint256 periodBonusRatio;
-    }
-
     function _getUserAccruedRewards(
         address user,
         RewardState memory userRewardState,
@@ -842,35 +834,32 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 // (using avaialable balance to count the locked balance with the multiplier later in this function)
                 uint256 indexDiff = currentRewardsIndex - userLastIndex;
 
-                uint256 stakingRewards = (userStakedBalance * indexDiff) / UNIT;
-
                 uint256 lockingRewards;
 
                 if(userLocks[user].length != 0){
-                    UserLockRewardVars memory vars;
 
                     // and if an user has a lock, calculate the locked rewards
-                    vars.lastUserLockIndex = userLocks[user].length - 1;
+                    uint256 lastUserLockIndex = userLocks[user].length - 1;
 
                     // using the locked balance, and the lock duration
-                    userLockedBalance = uint256(userLocks[user][vars.lastUserLockIndex].amount);
+                    userLockedBalance = uint256(userLocks[user][lastUserLockIndex].amount);
 
                     // Check that the user's Lock is not empty
-                    if(userLockedBalance != 0 && userLocks[user][vars.lastUserLockIndex].duration != 0){
-                        vars.previousBonusRatio = userCurrentBonusRatio[user];
+                    if(userLockedBalance != 0 && userLocks[user][lastUserLockIndex].duration != 0){
+                        uint256 previousBonusRatio = userCurrentBonusRatio[user];
 
-                        if(vars.previousBonusRatio > 0){
-                            vars.userRatioDecrease = userBonusRatioDecrease[user];
+                        if(previousBonusRatio > 0){
+                            uint256 userRatioDecrease = userBonusRatioDecrease[user];
                             // Find the new multiplier for user:
                             // From the last Ratio, where we remove userBonusRatioDecrease for each second since last update
-                            vars.bonusRatioDecrease = (block.timestamp - userRewardState.lastUpdate) * vars.userRatioDecrease;
+                            uint256 bonusRatioDecrease = (block.timestamp - userRewardState.lastUpdate) * userRatioDecrease;
                             
-                            newBonusRatio = vars.bonusRatioDecrease >= vars.previousBonusRatio ? 0 : vars.previousBonusRatio - vars.bonusRatioDecrease;
+                            newBonusRatio = bonusRatioDecrease >= previousBonusRatio ? 0 : previousBonusRatio - bonusRatioDecrease;
 
-                            if(vars.bonusRatioDecrease >= vars.previousBonusRatio){
+                            if(bonusRatioDecrease >= previousBonusRatio){
                                 // Since the last update, bonus ratio decrease under 0
                                 // We count the bonusRatioDecrease as the difference between the last Bonus Ratio and 0
-                                vars.bonusRatioDecrease = vars.previousBonusRatio;
+                                bonusRatioDecrease = previousBonusRatio;
                                 // In the case this update is made far after the end of the lock, this method would mean
                                 // the user could get a multiplier for longer than expected
                                 // We count on the Kick logic to avoid that scenario
@@ -878,14 +867,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
                             // and calculate the locking rewards based on the locked balance & 
                             // a ratio based on the rpevious one and the newly calculated one
-                            vars.periodBonusRatio = newBonusRatio + ((vars.userRatioDecrease + vars.bonusRatioDecrease) / 2);
-                            lockingRewards = (userLockedBalance * ((indexDiff * vars.periodBonusRatio) / UNIT)) / UNIT;
+                            uint256 periodBonusRatio = newBonusRatio + ((userRatioDecrease + bonusRatioDecrease) / 2);
+                            lockingRewards = (userLockedBalance * ((indexDiff * periodBonusRatio) / UNIT)) / UNIT;
                         }
                     }
 
                 }
-                // sum up the accrued rewards, and return it
-                accruedRewards = stakingRewards + lockingRewards;
+                // calculate the staking rewards
+                // sum it up with locking rewards, and return it
+                accruedRewards = ((userStakedBalance * indexDiff) / UNIT) + lockingRewards;
             }
         }
     }
