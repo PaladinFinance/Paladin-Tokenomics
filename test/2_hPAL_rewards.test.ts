@@ -157,6 +157,8 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         it(' should set the correct lastUpdate timestamp', async () => {
 
+            const previous_update_ts = await hPAL.lastDropUpdate()
+
             await advanceTime(MONTH)
 
             const update_tx = await hPAL.connect(user1).updateRewardState()
@@ -166,43 +168,44 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
             expect(await hPAL.lastRewardUpdate()).to.be.eq(tx_ts)
 
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx_ts)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(previous_update_ts.add(MONTH))
 
         });
 
         it(' should decrease correctly each month', async () => {
             let monthly_decrease = startDropPerSecond.sub(endDropPerSecond).div(BigNumber.from(dropDecreaseDuration).div(MONTH))
+            const initial_update_ts = await hPAL.lastDropUpdate()
+
+            let current_drop_update_ts = initial_update_ts
 
             await advanceTime(MONTH)
 
             // update 1
             const update_tx1 = await hPAL.connect(user1).updateRewardState()
-            const tx1_block = (await update_tx1).blockNumber
-            const tx1_ts = (await ethers.provider.getBlock(tx1_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             const expected_drop1 = startDropPerSecond.sub(monthly_decrease)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
 
             // update 2 => no change
             const update_tx2 = await hPAL.connect(user1).updateRewardState()
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
 
             await advanceTime(MONTH / 2)
 
             // update 3 => no change
             const update_tx3 = await hPAL.connect(user1).updateRewardState()
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
 
             await advanceTime(MONTH / 2)
 
             // update 4 => change
             const update_tx4 = await hPAL.connect(user1).updateRewardState()
-            const tx4_block = (await update_tx4).blockNumber
-            const tx4_ts = (await ethers.provider.getBlock(tx4_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx4_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             const expected_drop4 = expected_drop1.sub(monthly_decrease)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop4)
@@ -211,9 +214,8 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
             // update 5 => change
             const update_tx5 = await hPAL.connect(user1).updateRewardState()
-            const tx5_block = (await update_tx5).blockNumber
-            const tx5_ts = (await ethers.provider.getBlock(tx5_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx5_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             const expected_drop5 = expected_drop4.sub(monthly_decrease)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop5)
@@ -222,9 +224,8 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
             
             // update 6 => change multiple time
             const update_tx6 = await hPAL.connect(user1).updateRewardState()
-            const tx6_block = (await update_tx6).blockNumber
-            const tx6_ts = (await ethers.provider.getBlock(tx6_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx6_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH * 3)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             const expected_drop6 = expected_drop5.sub(monthly_decrease.mul(3))
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop6)
@@ -232,7 +233,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
             // advance to end of the 2 years => using a for loop for each month
             // update 7 -> x => change multiple time
             const remaining_months = 17
-            let last_update_ts = tx6_ts;
+            let last_update_ts = current_drop_update_ts;
             let last_currentDrop = expected_drop6;
 
             const start_ts = await hPAL.startDropTimestamp()
@@ -242,14 +243,12 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 await advanceTime(MONTH)
 
                 let update_tx = await hPAL.connect(user1).updateRewardState()
-                let tx_block = (await update_tx).blockNumber
-                let tx_ts = (await ethers.provider.getBlock(tx_block || 0)).timestamp
-                expect(await hPAL.lastDropUpdate()).to.be.eq(tx_ts)
+                last_update_ts = last_update_ts.add(MONTH)
+                expect(await hPAL.lastDropUpdate()).to.be.eq(last_update_ts)
 
                 let expected_drop = last_currentDrop.sub(monthly_decrease)
                 expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop)
 
-                last_update_ts = tx_ts
                 last_currentDrop = expected_drop
             }
 
@@ -271,27 +270,71 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
 
         });
 
+        it(' should allow next month decrease if previous month decrease was done at end of month', async () => {
+            let monthly_decrease = startDropPerSecond.sub(endDropPerSecond).div(BigNumber.from(dropDecreaseDuration).div(MONTH))
+            const initial_update_ts = await hPAL.lastDropUpdate()
+
+            let current_drop_update_ts = initial_update_ts
+
+            await advanceTime(MONTH)
+
+            // update 1
+            const update_tx1 = await hPAL.connect(user1).updateRewardState()
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            const expected_drop1 = startDropPerSecond.sub(monthly_decrease)
+            expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
+
+            // update 2 => no change
+            const update_tx2 = await hPAL.connect(user1).updateRewardState()
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+            expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
+
+            await advanceTime((MONTH * 2) - 100)
+
+            // update 3 => change
+            const update_tx3 = await hPAL.connect(user1).updateRewardState()
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            const expected_drop3 = expected_drop1.sub(monthly_decrease)
+            expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop3)
+
+            await advanceTime(150)
+
+            // update 4 => change
+            const update_tx4 = await hPAL.connect(user1).updateRewardState()
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            const expected_drop4 = expected_drop3.sub(monthly_decrease)
+            expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop4)
+        });
+
         it(' should not change during the 1 month period', async () => {
             let monthly_decrease = startDropPerSecond.sub(endDropPerSecond).div(BigNumber.from(dropDecreaseDuration).div(MONTH))
+            const initial_update_ts = await hPAL.lastDropUpdate()
+
+            let current_drop_update_ts = initial_update_ts
 
             await advanceTime(MONTH)
 
             const update_tx1 = await hPAL.connect(user1).updateRewardState()
-            const tx1_block = (await update_tx1).blockNumber
-            const tx1_ts = (await ethers.provider.getBlock(tx1_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             const expected_drop1 = startDropPerSecond.sub(monthly_decrease)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
 
             const update_tx2 = await hPAL.connect(user1).updateRewardState()
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
 
             await advanceTime(MONTH / 2)
 
             const update_tx3 = await hPAL.connect(user1).updateRewardState()
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
             expect(await hPAL.currentDropPerSecond()).to.be.eq(expected_drop1)
         });
 
@@ -356,6 +399,9 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
         });
 
         it(' should be triggered by all methods updating reward state', async () => {
+            const initial_update_ts = await hPAL.lastDropUpdate()
+
+            let current_drop_update_ts = initial_update_ts
 
             await token.connect(recipient).transfer(user2.address, stake_amount)
 
@@ -364,41 +410,47 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
             await advanceTime(MONTH)
 
             const stake_tx = await hPAL.connect(user2).stake(stake_amount)
-            const tx1_block = (await stake_tx).blockNumber
-            const tx1_ts = (await ethers.provider.getBlock(tx1_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx1_ts)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
             await advanceTime(MONTH)
 
-            const lock_tx = await hPAL.connect(user2).lock(lock_amount, lock_duration)
-            const tx2_block = (await lock_tx).blockNumber
-            const tx2_ts = (await ethers.provider.getBlock(tx2_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx2_ts)
-
-            await advanceTime(MONTH)
-
-            const transfer_tx = await hPAL.connect(user1).transfer(user2.address, transfer_amount)
-            const tx3_block = (await transfer_tx).blockNumber
-            const tx3_ts = (await ethers.provider.getBlock(tx3_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx3_ts)
-
-            await advanceTime(31557600)
-
-            const unlock_tx = await hPAL.connect(user2).unlock()
-            const tx4_block = (await unlock_tx).blockNumber
-            const tx4_ts = (await ethers.provider.getBlock(tx4_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx4_ts)
-
-            await advanceTime(MONTH)
-
-            await hPAL.connect(user2).cooldown()
+            await hPAL.connect(user1).cooldown()
 
             await advanceTime(864000)
 
-            const unstake_tx = await hPAL.connect(user2).unstake(stake_amount, user2.address)
-            const tx5_block = (await unstake_tx).blockNumber
-            const tx5_ts = (await ethers.provider.getBlock(tx5_block || 0)).timestamp
-            expect(await hPAL.lastDropUpdate()).to.be.eq(tx5_ts)
+            const unstake_tx = await hPAL.connect(user1).unstake(stake_amount, user1.address)
+            const ellapsed_months2 = BigNumber.from(864000).div(MONTH).add(1).mul(MONTH)
+            current_drop_update_ts = current_drop_update_ts.add(ellapsed_months2)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            await advanceTime(MONTH)
+
+            const lock_tx = await hPAL.connect(user2).lock(lock_amount, 7890000)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            await advanceTime(MONTH)
+
+            const transfer_tx = await hPAL.connect(user2).transfer(user1.address, transfer_amount)
+            current_drop_update_ts = current_drop_update_ts.add(MONTH)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
+
+            const user2_lock = await hPAL.getUserLock(user2.address)
+            const user2_unlock_date = BigNumber.from(user2_lock.startTimestamp).add(user2_lock.duration)
+
+            const last_tx_block = (await transfer_tx).blockNumber
+            const last_tx_ts = (await ethers.provider.getBlock(last_tx_block || 0)).timestamp
+
+            const user2_remaining_lock_duration = user2_unlock_date.sub(last_tx_ts)
+
+            await advanceTime(user2_remaining_lock_duration.toNumber())
+
+            const ellapsed_months1 = user2_remaining_lock_duration.div(MONTH).mul(MONTH)
+
+            const unlock_tx = await hPAL.connect(user2).unlock()
+            current_drop_update_ts = current_drop_update_ts.add(ellapsed_months1)
+            expect(await hPAL.lastDropUpdate()).to.be.eq(current_drop_update_ts)
 
         });
 
@@ -833,7 +885,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            estimated_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(stake_amount).div(UNIT)
+            estimated_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(stake_amount).div(UNIT).div(UNIT)
 
             expect(user_rewards3).to.be.eq(user_rewards2.add(estimated_accrued_rewards))
 
@@ -853,7 +905,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(stake_amount).div(UNIT)
+            estimated_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(stake_amount).div(UNIT).div(UNIT)
 
             expect(user_rewards4).to.be.eq(user_rewards3.add(estimated_accrued_rewards))
         });
@@ -900,7 +952,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -922,7 +974,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -973,7 +1025,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -995,7 +1047,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1046,7 +1098,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1068,7 +1120,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update_index2.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index2.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1252,7 +1304,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1274,7 +1326,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((unlock_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((unlock_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(unlock_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1334,7 +1386,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1356,7 +1408,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((kick_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((kick_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(kick_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1418,7 +1470,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1440,7 +1492,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 estimated_current_multiplier.add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((update2_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((update2_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update2_index.sub(update_index).mul(staked_balance).div(UNIT))
 
@@ -1543,7 +1595,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time).add(decrease_multiplier).div(2)
             )
 
-            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period).div(UNIT)).mul(lock_amount).div(UNIT)
+            let estimated_locking_accrued_rewards = ((update_index.sub(lock_index)).mul(estimated_multiplier_period)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(update_index.sub(lock_index).mul(staked_balance).div(UNIT))
 
@@ -1566,7 +1618,7 @@ describe('HolyPaladinToken contract tests - Rewards', () => {
                 decrease_multiplier.mul(ellapsed_time2).add(decrease_multiplier).div(2)
             )
 
-            estimated_locking_accrued_rewards = ((global_index.sub(update_index)).mul(estimated_multiplier_period2).div(UNIT)).mul(lock_amount).div(UNIT)
+            estimated_locking_accrued_rewards = ((global_index.sub(update_index)).mul(estimated_multiplier_period2)).mul(lock_amount).div(UNIT).div(UNIT)
 
             estimated_accrued_rewards = estimated_locking_accrued_rewards.add(global_index.sub(update_index).mul(staked_balance).div(UNIT))
 
