@@ -184,7 +184,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         pal = IERC20(palToken);
 
-        transferOwnership(_admin);
+        _transferOwnership(_admin);
 
         totalLocks.push(TotalLock(
             0,

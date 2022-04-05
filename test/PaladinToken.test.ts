@@ -94,8 +94,10 @@ describe('PaladinToken contract tests', () => {
                 token.connect(recipient).transfer(user1.address, amount)
             ).to.be.revertedWith('PaladinToken: caller cannot transfer')
 
+            await token.connect(recipient).approve(user1.address, amount)
+
             await expect(
-                token.connect(recipient).transferFrom(recipient.address, user1.address, amount)
+                token.connect(user1).transferFrom(recipient.address, user1.address, amount)
             ).to.be.revertedWith('PaladinToken: caller cannot transfer')
         });
 
@@ -345,7 +347,7 @@ describe('PaladinToken contract tests', () => {
 
             await expect(
                 token.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -353,21 +355,21 @@ describe('PaladinToken contract tests', () => {
 
             await expect(
                 token.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
         it(' should block transfer to/from address Zero', async () => {
 
-            await token.connect(user1).approve(user1.address, allowance)
+            await token.connect(user1).approve(user2.address, allowance)
 
             await expect(
-                token.connect(user1).transferFrom(user1.address, ethers.constants.AddressZero, amount)
+                token.connect(user2).transferFrom(user1.address, ethers.constants.AddressZero, amount)
             ).to.be.revertedWith('ERC20: transfer to the zero address')
 
             await expect(
-                token.connect(user1).transferFrom(ethers.constants.AddressZero, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer from the zero address')
+                token.connect(user2).transferFrom(ethers.constants.AddressZero, user1.address, amount)
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 

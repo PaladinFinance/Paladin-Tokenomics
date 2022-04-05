@@ -2088,6 +2088,8 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         it(' should fail if trying to stake & re-lock more than current balance', async () => {
 
+            await token.connect(user1).increaseAllowance(hPAL.address, bigger_lock_amount)
+
             await expect(
                 hPAL.connect(user1).stakeAndIncreaseLock(bigger_lock_amount, lock_duration)
             ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
