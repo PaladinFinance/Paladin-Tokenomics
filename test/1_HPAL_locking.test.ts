@@ -699,6 +699,22 @@ describe('HolyPaladinToken contract tests - Locking', () => {
 
         });
 
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).increaseLock(bigger_lock_amount)
+            ).to.be.revertedWith('EmptyLock')
+
+        });
+
         it(' should fail if no lock exists for the user', async () => {
 
             await expect(
@@ -795,6 +811,22 @@ describe('HolyPaladinToken contract tests - Locking', () => {
             await expect(
                 hPAL.connect(user2).increaseLockDuration(bigger_lock_duration)
             ).to.be.revertedWith('NoLock')
+
+        });
+
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).increaseLockDuration(bigger_lock_duration)
+            ).to.be.revertedWith('EmptyLock')
 
         });
 
@@ -2047,6 +2079,22 @@ describe('HolyPaladinToken contract tests - Locking', () => {
             await expect(
                 hPAL.connect(user2).stakeAndIncreaseLock(extra_lock_amount, lock_duration)
             ).to.be.revertedWith('NoLock')
+
+        });
+
+        it(' should fail if user has an empty lock', async () => {
+
+            const unlock_delay = await hPAL.UNLOCK_DELAY()
+
+            await advanceTime(lock_duration)
+
+            await hPAL.connect(user1).unlock()
+
+            await advanceTime(unlock_delay.toNumber())
+
+            await expect(
+                hPAL.connect(user1).stakeAndIncreaseLock(extra_lock_amount, lock_duration)
+            ).to.be.revertedWith('EmptyLock')
 
         });
 

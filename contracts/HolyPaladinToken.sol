@@ -298,6 +298,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
         UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
+        if(currentUserLock.amount == 0) revert EmptyLock();
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         // Call the _lock method with the current amount, and the new duration
@@ -314,6 +315,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
         UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
+        if(currentUserLock.amount == 0) revert EmptyLock();
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         // Call the _lock method with the current duration, and the new amount
@@ -376,6 +378,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
         uint256 previousLockAmount = userLocks[msg.sender][currentUserLockIndex].amount;
+        if(previousLockAmount == 0) revert EmptyLock();
         // Stake the new amount
         uint256 stakedAmount = _stake(msg.sender, amount);
         // No need to update user rewards since it's done through the _stake() method
