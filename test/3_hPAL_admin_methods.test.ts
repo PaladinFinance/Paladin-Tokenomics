@@ -27,7 +27,7 @@ const mint_amount = ethers.utils.parseEther('10000000') // 10 M tokens
 const startDropPerSecond = ethers.utils.parseEther('0.0005')
 const endDropPerSecond = ethers.utils.parseEther('0.00001')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const MONTH = 2629800
 
@@ -97,8 +97,8 @@ describe('HolyPaladinToken contract tests - Admin', () => {
         expect(await hPAL.COOLDOWN_PERIOD()).to.be.eq(864000)
         expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(432000)
         expect(await hPAL.UNLOCK_DELAY()).to.be.eq(1209600)
-        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7889400)
-        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63115200)
+        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7884000)
+        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63072000)
 
     });
 
@@ -190,7 +190,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31556952
+        const lock_duration = 31536000
 
         beforeEach(async () => {
 

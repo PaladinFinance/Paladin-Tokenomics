@@ -30,7 +30,7 @@ contract LockingHPALTest is DSTest {
         //hPAL constructor parameters
         uint256 startDropPerSecond = 0.0005 * 1e18;
         uint256 endDropPerSecond = 0.00001 * 1e18;
-        uint256 dropDecreaseDuration = 63115200;
+        uint256 dropDecreaseDuration = 63072000;
         uint256 baseLockBonusRatio = 1 * 1e18;
         uint256 minLockBonusRatio = 2 * 1e18;
         uint256 maxLockBonusRatio = 6 * 1e18;
@@ -64,7 +64,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         HolyPaladinToken.TotalLock memory previousTotalLocked = hpal.getCurrentTotalLock();
 
@@ -134,7 +134,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
@@ -291,7 +291,7 @@ contract LockingHPALTest is DSTest {
 
         uint256 lockAmount = 300 * 1e18;
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
@@ -382,7 +382,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
@@ -472,7 +472,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         vm.prank(locker);
         hpal.lock(lockAmount, lockDuration);
@@ -560,7 +560,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         if(amount > stakingAmount || amount == 0) return;
 
@@ -603,7 +603,7 @@ contract LockingHPALTest is DSTest {
         vm.prank(locker);
         hpal.stake(stakingAmount);
 
-        uint256 lockDuration = 31557600;
+        uint256 lockDuration = 31536000;
 
         if(amount > stakingAmount || amount == 0) return;
 
@@ -661,7 +661,7 @@ contract LockingHPALTest is DSTest {
                 bytes("hPAL: Null amount")
             );
             vm.prank(locker);
-            hpal.stakeAndLock(amount, 31557600);
+            hpal.stakeAndLock(amount, 31536000);
 
             uint256 newBalance = pal.balanceOf(locker);
             uint256 newStakedBalance = hpal.balanceOf(locker);
@@ -687,7 +687,7 @@ contract LockingHPALTest is DSTest {
                 bytes("ERC20: transfer amount exceeds balance")
             );
             vm.prank(locker);
-            hpal.stakeAndLock(amount, 31557600);
+            hpal.stakeAndLock(amount, 31536000);
 
             uint256 newBalance = pal.balanceOf(locker);
             uint256 newStakedBalance = hpal.balanceOf(locker);
@@ -710,7 +710,7 @@ contract LockingHPALTest is DSTest {
         }
         else{
             vm.prank(locker);
-            uint256 returnAmount = hpal.stakeAndLock(amount, 31557600);
+            uint256 returnAmount = hpal.stakeAndLock(amount, 31536000);
 
             assertEq(returnAmount, amount);
 
@@ -729,7 +729,7 @@ contract LockingHPALTest is DSTest {
 
             assertEq(userLock.amount, amount);
             assertEq(userLock.startTimestamp, block.timestamp);
-            assertEq(userLock.duration, 31557600);
+            assertEq(userLock.duration, 31536000);
             assertEq(userLock.fromBlock, block.number);
             assertEq(newTotalLocked.total, previousTotalLocked.total + amount);
         }
@@ -747,7 +747,7 @@ contract LockingHPALTest is DSTest {
         hpal.stake(700 * 1e18);
 
         vm.prank(locker);
-        hpal.lock(300 * 1e18, 31557600);
+        hpal.lock(300 * 1e18, 31536000);
 
         uint256 previousBalance = pal.balanceOf(locker);
         uint256 previousStakedBalance = hpal.balanceOf(locker);
@@ -762,7 +762,7 @@ contract LockingHPALTest is DSTest {
                 bytes("hPAL: Null amount")
             );
             vm.prank(locker);
-            hpal.stakeAndIncreaseLock(amount, 31557600);
+            hpal.stakeAndIncreaseLock(amount, 31536000);
 
             assertEq(pal.balanceOf(locker), previousBalance);
             assertEq(hpal.balanceOf(locker), previousStakedBalance);
@@ -783,7 +783,7 @@ contract LockingHPALTest is DSTest {
                 bytes("ERC20: transfer amount exceeds balance")
             );
             vm.prank(locker);
-            hpal.stakeAndIncreaseLock(amount, 31557600);
+            hpal.stakeAndIncreaseLock(amount, 31536000);
 
             assertEq(pal.balanceOf(locker), previousBalance);
             assertEq(hpal.balanceOf(locker), previousStakedBalance);
@@ -801,7 +801,7 @@ contract LockingHPALTest is DSTest {
         }
         else{
             vm.prank(locker);
-            uint256 returnAmount = hpal.stakeAndIncreaseLock(amount, 31557600);
+            uint256 returnAmount = hpal.stakeAndIncreaseLock(amount, 31536000);
 
             assertEq(returnAmount, amount);
 
@@ -815,7 +815,7 @@ contract LockingHPALTest is DSTest {
 
             assertEq(userLock.amount, previousLock.amount + amount);
             assertEq(userLock.startTimestamp, previousLock.startTimestamp);
-            assertEq(userLock.duration, 31557600);
+            assertEq(userLock.duration, 31536000);
             assertEq(userLock.fromBlock, block.number);
             assertEq(newTotalLocked.total, previousTotalLocked.total + amount);
 
@@ -840,7 +840,7 @@ contract LockingHPALTest is DSTest {
         uint256 lockAmount = 300 * 1e18;
 
         vm.prank(locker);
-        hpal.lock(lockAmount, 31557600);
+        hpal.lock(lockAmount, 31536000);
 
         uint256 previousBalanceLocker = hpal.balanceOf(locker);
         uint256 previousAvailableBalanceLocker = hpal.availableBalanceOf(locker);
