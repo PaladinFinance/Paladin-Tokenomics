@@ -6,6 +6,7 @@ import "./open-zeppelin/utils/Ownable.sol";
 import "./open-zeppelin/interfaces/IERC20.sol";
 import "./open-zeppelin/libraries/SafeERC20.sol";
 import "./open-zeppelin/utils/Math.sol";
+import "./utils/SmartWalletChecker.sol";
 
 /** @title Holy Paladin Token (hPAL) contract  */
 /// @author Paladin
@@ -16,27 +17,27 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     /** @notice Seconds in a Week */
     uint256 public constant WEEK = 604800;
     /** @notice Seconds in a Month */
-    uint256 public constant MONTH = 2629800;
+    uint256 public constant MONTH = 2628000;
     /** @notice 1e18 scale */
     uint256 public constant UNIT = 1e18;
     /** @notice Max BPS value (100%) */
     uint256 public constant MAX_BPS = 10000;
     /** @notice Seconds in a Year */
-    uint256 public constant ONE_YEAR = 31557600;
+    uint256 public constant ONE_YEAR = 31536000;
 
     /** @notice  Period to wait before unstaking tokens  */
     uint256 public constant COOLDOWN_PERIOD = 864000; // 10 days
     /** @notice  Duration of the unstaking period
     After that period, unstaking cooldown is expired  */
-    uint256 public constant UNSTAKE_PERIOD = 432000; // 5 days
+    uint256 public constant UNSTAKE_PERIOD = 172800; // 2 days
 
     /** @notice Period to unlock/re-lock tokens without possibility of punishement   */
     uint256 public constant UNLOCK_DELAY = 1209600; // 2 weeks
 
     /** @notice Minimum duration of a Lock  */
-    uint256 public constant MIN_LOCK_DURATION = 7889400; // 3 months
+    uint256 public constant MIN_LOCK_DURATION = 7884000; // 3 months
     /** @notice Maximum duration of a Lock  */
-    uint256 public constant MAX_LOCK_DURATION = 63115200; // 2 years
+    uint256 public constant MAX_LOCK_DURATION = 63072000; // 2 years
 
     /** @notice Address of the PAL token  */
     IERC20 public immutable pal;
@@ -145,6 +146,11 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     mapping(address => uint256) public userCurrentBonusRatio;
     /** @notice Value by which user Bonus Ratio decrease each second  */
     mapping(address => uint256) public userBonusRatioDecrease;
+    
+    /** @notice Address of the currect SmartWalletChecker  */
+    address public smartWalletChecker;
+    /** @notice Address of the future SmartWalletChecker  */
+    address public futureSmartWalletChecker;
 
     error NoBalance();
     error NullAmount();
@@ -167,6 +173,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     error NotEmergency();
     /** @notice Error raised if contract is turned in emergency mode */
     error EmergencyBlock();
+
+    error ContractNotAllowed(); 
 
     // Event
 
@@ -195,6 +203,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         address _palToken,
         address _admin,
         address _rewardsVault,
+        address _smartWalletChecker,
         uint256 _startDropPerSecond,
         uint256 _endDropPerSecond,
         uint256 _dropDecreaseDuration,
@@ -208,7 +217,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         pal = IERC20(_palToken);
 
-        transferOwnership(_admin);
+        _transferOwnership(_admin);
+
+        // Set the smartWalletChecker (can be address 0 if we don't want a checker at 1st)
+        smartWalletChecker = _smartWalletChecker;
 
         totalLocks.push(TotalLock(
             0,
@@ -216,6 +228,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         ));
         // Set the immutable variables
         rewardsVault = _rewardsVault;
+
+        // Prevent future underflow
+        require(_startDropPerSecond >= endDropPerSecond);
 
         startDropPerSecond = _startDropPerSecond;
         endDropPerSecond = _endDropPerSecond;
@@ -253,6 +268,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @notice Updates the Cooldown for the caller
      */
     function cooldown() external {
+        if(emergency) revert EmergencyBlock();
         if(balanceOf(msg.sender) == 0) revert NoBalance();
 
         // Set the current timestamp as start of the user cooldown
@@ -279,6 +295,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function lock(uint256 amount, uint256 duration) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         // Update user rewards before any change on their balance (staked and locked)
         _updateUserRewards(msg.sender);
         if(delegates[msg.sender] == address(0)){
@@ -294,6 +312,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function increaseLockDuration(uint256 duration) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
         UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
@@ -310,6 +330,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function increaseLock(uint256 amount) external {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
         UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
@@ -353,6 +375,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function stakeAndLock(uint256 amount, uint256 duration) external returns(uint256) {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         // Stake the given amount
         uint256 stakedAmount = _stake(msg.sender, amount);
         // No need to update user rewards since it's done through the _stake() method
@@ -372,6 +396,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      */
     function stakeAndIncreaseLock(uint256 amount, uint256 duration) external returns(uint256) {
         if(emergency) revert EmergencyBlock();
+        //Check if caller is allowed
+        _assertNotContract(msg.sender);
         if(userLocks[msg.sender].length == 0) revert NoLock();
         // Find the current Lock
         uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
@@ -491,6 +517,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
      * @return UserLock : user past Lock
      */
     function getUserPastLock(address user, uint256 blockNumber) external view returns(UserLock memory) {
+        //If the contract is blocked (emergency mode)
+        //Return an empty lock
+        if(emergency) return UserLock(0, 0, 0, 0);
         return _getPastLock(user, blockNumber);
     }
 
@@ -742,6 +771,21 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
     // ----------------
 
+    // Check if caller is not a smart contract
+    // If it is a contract, check if the contract is allowed by SmartWalletChecker
+    // Revert if not allowed
+    function _assertNotContract(address addr) internal {
+        if(addr != tx.origin){
+            address checker = smartWalletChecker;
+            if(checker != address(0)){
+                if(SmartWalletChecker(checker).check(addr)){
+                    return;
+                }
+                revert ContractNotAllowed();
+            }
+        }
+    }
+
     // Find the user available balance (staked - locked) => the balance that can be transfered
     function _availableBalanceOf(address user) internal view returns(uint256) {
         if(userLocks[user].length == 0) return balanceOf(user);
@@ -757,6 +801,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             if(currentDropPerSecond != endDropPerSecond) {
                 currentDropPerSecond = endDropPerSecond;
                 lastDropUpdate = block.timestamp;
+                // Here we set the current timestamp isntead of increasing by a number of month,
+                // since we exceeded the dropDecreaseDuration, and the value could be updated
+                // outside a monthly process
             }
 
             return endDropPerSecond;
@@ -764,7 +811,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         if(block.timestamp < lastDropUpdate + MONTH) return currentDropPerSecond; // Update it once a month
 
-        uint256 dropDecreasePerMonth = (startDropPerSecond - endDropPerSecond) / (dropDecreaseDuration / MONTH);
+        uint256 dropDecreasePerMonth = ((startDropPerSecond - endDropPerSecond) * MONTH) / (dropDecreaseDuration);
         uint256 nbMonthEllapsed = (block.timestamp - lastDropUpdate) / MONTH;
 
         uint256 dropPerSecondDecrease = dropDecreasePerMonth * nbMonthEllapsed;
@@ -774,7 +821,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         uint256 newDropPerSecond = currentDropPerSecond - dropPerSecondDecrease > endDropPerSecond ? currentDropPerSecond - dropPerSecondDecrease : endDropPerSecond;
     
         currentDropPerSecond = newDropPerSecond;
-        lastDropUpdate = block.timestamp;
+        lastDropUpdate = lastDropUpdate + (nbMonthEllapsed * MONTH);
 
         return newDropPerSecond;
     }
@@ -868,7 +915,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                             // and calculate the locking rewards based on the locked balance & 
                             // a ratio based on the rpevious one and the newly calculated one
                             uint256 periodBonusRatio = newBonusRatio + ((userRatioDecrease + bonusRatioDecrease) / 2);
-                            lockingRewards = (userLockedBalance * ((indexDiff * periodBonusRatio) / UNIT)) / UNIT;
+                            lockingRewards = ((userLockedBalance * (indexDiff * vars.periodBonusRatio)) / UNIT) / UNIT;
                         }
                     }
 
@@ -922,7 +969,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         _updateUserRewards(from);
 
         uint256 fromCooldown = cooldowns[from]; //If from is address 0x00...0, cooldown is always 0 
-
+        
         if(from != to) {
             // Update user rewards before any change on their balance (staked and locked)
             _updateUserRewards(to);
@@ -930,11 +977,12 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             // + no need to update the cooldown on a self-transfer
 
             cooldowns[to] = _getNewReceiverCooldown(fromCooldown, amount, to, balanceOf(to));
-        }
 
-        // If from transfer all of its balance, reset the cooldown to 0
-        if(balanceOf(from) == amount && fromCooldown != 0) {
-            cooldowns[from] = 0;
+            // If from transfer all of its balance, reset the cooldown to 0
+            uint256 previousFromBalance = balanceOf(from);
+            if(balanceOf(from) == amount && fromCooldown != 0) {
+                cooldowns[from] = 0;
+            }
         }
     }
 
@@ -1054,6 +1102,42 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         }
     }
 
+    function _writeUserLock(
+        address user,
+        uint256 amount,
+        uint256 startTimestamp,
+        uint256 duration
+    ) internal {
+        uint256 pos = userLocks[user].length;
+        if (pos > 0 && userLocks[user][pos - 1].fromBlock == block.number) {
+            UserLock storage currentUserLock = userLocks[user][pos - 1];
+            currentUserLock.amount = safe128(amount);
+            currentUserLock.duration = safe48(duration);
+            currentUserLock.startTimestamp = safe48(startTimestamp);
+        } else {
+            userLocks[user].push(
+                UserLock(
+                    safe128(amount),
+                    safe48(startTimestamp),
+                    safe48(duration),
+                    safe32(block.number)
+                )
+            );
+        }
+    }
+
+    function _writeTotalLocked(uint256 newTotalLocked) internal {
+        uint256 pos = totalLocks.length;
+        if (pos > 0 && totalLocks[pos - 1].fromBlock == block.number) {
+            totalLocks[pos - 1].total = safe224(newTotalLocked);
+        } else {
+            totalLocks.push(TotalLock(
+                safe224(newTotalLocked),
+                safe32(block.number)
+            ));
+        }
+    }
+
     // -----------------
 
     function _stake(address user, uint256 amount) internal returns(uint256) {
@@ -1113,6 +1197,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     ) internal view returns(uint256) {
         uint256 receiverCooldown = cooldowns[receiver];
 
+        // If amount is 0, there is not transfer, no need to change the receiver cooldown
+        if(amount == 0) return receiverCooldown;
+
         // If receiver has no cooldown, no need to set a new one
         if(receiverCooldown == 0) return 0;
 
@@ -1161,16 +1248,13 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
             // Update total locked supply
             currentTotalLocked += amount;
-            totalLocks.push(TotalLock(
-                safe224(currentTotalLocked),
-                safe32(block.number)
-            ));
+            _writeTotalLocked(currentTotalLocked);
 
             emit Lock(user, amount, block.timestamp, duration, currentTotalLocked);
         } 
         else {
             // Get the current user Lock
-            UserLock storage currentUserLock = userLocks[user][userLocks[user].length - 1];
+            UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
             // Calculate the end of the user current lock
             uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
@@ -1180,12 +1264,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 // User locked, and then unlocked
                 // or user lock expired
 
-                userLocks[user].push(UserLock(
-                    safe128(amount),
-                    safe48(startTimestamp),
-                    safe48(duration),
-                    safe32(block.number)
-                ));
+                _writeUserLock(user, amount, startTimestamp, duration);
             }
             else {
                 // Update of the current Lock : increase amount or increase duration
@@ -1194,15 +1273,8 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 if(duration <  currentUserLock.duration) revert SmallerDuration();
 
                 // If the method is called with INCREASE_AMOUNT, then we don't change the startTimestamp of the Lock
-
-                userLocks[user].push(UserLock(
-                    safe128(amount),
-                    action == LockAction.INCREASE_AMOUNT ? currentUserLock.startTimestamp : safe48(startTimestamp),
-                    safe48(duration),
-                    safe32(block.number)
-                ));
-
                 startTimestamp = action == LockAction.INCREASE_AMOUNT ? currentUserLock.startTimestamp : startTimestamp;
+                _writeUserLock(user, amount, startTimestamp, duration);
             }
 
             // If the duration is updated, re-calculate the multiplier for the Lock
@@ -1221,10 +1293,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                 if(currentUserLock.amount != 0) currentTotalLocked -= currentUserLock.amount;
                 
                 currentTotalLocked += amount;
-                totalLocks.push(TotalLock(
-                    safe224(currentTotalLocked),
-                    safe32(block.number)
-                ));
+                _writeTotalLocked(currentTotalLocked);
             }
 
             emit Lock(user, amount, startTimestamp, duration, currentTotalLocked);
@@ -1237,7 +1306,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Get the user current Lock
         // And calculate the end of the Lock
-        UserLock storage currentUserLock = userLocks[user][userLocks[user].length - 1];
+        UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
         if(block.timestamp <= userCurrentLockEnd) revert LockNotExpired();
@@ -1245,22 +1314,14 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
-        totalLocks.push(TotalLock(
-            safe224(currentTotalLocked),
-            safe32(block.number)
-        ));
+        _writeTotalLocked(currentTotalLocked);
 
         // Remove the bonus multiplier
         userCurrentBonusRatio[user] = 0;
         userBonusRatioDecrease[user] = 0;
 
         // Set the user Lock as an empty Lock
-        userLocks[user].push(UserLock(
-            safe128(0),
-            safe48(block.timestamp),
-            safe48(0),
-            safe32(block.number)
-        ));
+        _writeUserLock(user, 0, block.timestamp, 0);
 
         emit Unlock(user, currentUserLock.amount, currentTotalLocked);
     }
@@ -1271,7 +1332,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Get the user to kick current Lock
         // and calculate the end of the Lock
-        UserLock storage currentUserLock = userLocks[user][userLocks[user].length - 1];
+        UserLock memory currentUserLock = userLocks[user][userLocks[user].length - 1];
         uint256 userCurrentLockEnd = currentUserLock.startTimestamp + currentUserLock.duration;
 
         if(block.timestamp <= userCurrentLockEnd) revert LockNotExpired();
@@ -1281,18 +1342,10 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         // Remove amount from total locked supply
         currentTotalLocked -= currentUserLock.amount;
-        totalLocks.push(TotalLock(
-            safe224(currentTotalLocked),
-            safe32(block.number)
-        ));
+        _writeTotalLocked(currentTotalLocked);
 
         // Set an empty Lock for the user
-        userLocks[user].push(UserLock(
-            safe128(0),
-            safe48(block.timestamp),
-            safe48(0),
-            safe32(block.number)
-        ));
+        _writeUserLock(user, 0, block.timestamp, 0);
 
         // Remove the bonus multiplier
         userCurrentBonusRatio[user] = 0;
@@ -1318,7 +1371,13 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         delegates[delegator] = delegatee;
 
         // update the the Delegate chekpoint for the delegatee
-        delegateCheckpoints[delegator].push(DelegateCheckpoint(safe32(block.number), delegatee));
+        uint pos = delegateCheckpoints[delegator].length;
+
+        if (pos > 0 && delegateCheckpoints[delegator][pos - 1].fromBlock == block.number) {
+            delegateCheckpoints[delegator][pos - 1].delegate = delegatee;
+        } else {
+            delegateCheckpoints[delegator].push(DelegateCheckpoint(safe32(block.number), delegatee));
+        }
 
         emit DelegateChanged(delegator, oldDelegatee, delegatee);
 
@@ -1343,19 +1402,26 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             // Check if the user has a Lock, and if so, fetch it
             UserLock storage currentUserLock = userLocks[msg.sender][userLocks[msg.sender].length - 1];
 
-            // To remove the Lock and update the total locked
-            currentTotalLocked -= currentUserLock.amount;
-            totalLocks.push(TotalLock(
-                safe224(currentTotalLocked),
-                safe32(block.number)
-            ));
+            // No need to remove the last Lock if already empty
+            if(currentUserLock.amount != 0 && currentUserLock.duration > 0){
+                // To remove the Lock and update the total locked
+                currentTotalLocked -= currentUserLock.amount;
+                totalLocks.push(TotalLock(
+                    safe224(currentTotalLocked),
+                    safe32(block.number)
+                ));
 
-            userLocks[msg.sender].push(UserLock(
-                safe128(0),
-                safe48(block.timestamp),
-                safe48(0),
-                safe32(block.number)
-            ));
+                userLocks[msg.sender].push(UserLock(
+                    safe128(0),
+                    safe48(block.timestamp),
+                    safe48(0),
+                    safe32(block.number)
+                    ));
+
+                // Remove the bonus multiplier
+                userCurrentBonusRatio[msg.sender] = 0;
+                userBonusRatioDecrease[msg.sender] = 0;
+            }
         }
 
         // Get the user hPAL balance, and burn & send the given amount, or the user balance if the amount is bigger
@@ -1429,5 +1495,15 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     function setEndDropPerSecond(uint256 newEndDropPerSecond) external onlyOwner {
         if(block.timestamp < startDropTimestamp + dropDecreaseDuration) revert DecreaseDurationNotOver();
         endDropPerSecond = newEndDropPerSecond;
+    }
+
+
+    function commitSmartWalletChecker(address newSmartWalletChecker) external onlyOwner {
+        futureSmartWalletChecker = newSmartWalletChecker;
+    }
+
+
+    function applySmartWalletChecker() external onlyOwner {
+        smartWalletChecker = futureSmartWalletChecker;
     }
 }

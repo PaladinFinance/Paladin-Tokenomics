@@ -28,7 +28,7 @@ const {
 const startDropPerSecond = ethers.utils.parseEther('0.005')
 const endDropPerSecond = ethers.utils.parseEther('0.00075')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const baseLockBonusRatio = ethers.utils.parseEther('1')
 const minLockBonusRatio = ethers.utils.parseEther('2')

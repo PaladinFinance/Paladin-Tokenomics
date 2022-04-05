@@ -30,7 +30,7 @@ contract StakingHPALTest is DSTest {
         //hPAL constructor parameters
         uint256 startDropPerSecond = 0.0005 * 1e18;
         uint256 endDropPerSecond = 0.00001 * 1e18;
-        uint256 dropDecreaseDuration = 63115200;
+        uint256 dropDecreaseDuration = 63072000;
         uint256 baseLockBonusRatio = 1 * 1e18;
         uint256 minLockBonusRatio = 2 * 1e18;
         uint256 maxLockBonusRatio = 6 * 1e18;
@@ -39,6 +39,7 @@ contract StakingHPALTest is DSTest {
             address(pal),
             address(this),
             address(this),
+            address(0),
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,

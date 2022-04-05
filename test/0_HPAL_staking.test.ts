@@ -28,7 +28,7 @@ const mint_amount = ethers.utils.parseEther('10000000') // 10 M tokens
 const startDropPerSecond = ethers.utils.parseEther('0.0005')
 const endDropPerSecond = ethers.utils.parseEther('0.00001')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const baseLockBonusRatio = ethers.utils.parseEther('1')
 const minLockBonusRatio = ethers.utils.parseEther('2')
@@ -64,6 +64,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
             token.address,
             admin.address,
             mockRewardsVault.address,
+            ethers.constants.AddressZero,
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,
@@ -87,6 +88,9 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
         expect(tokenDecimals).to.be.eq(18)
 
         expect(await hPAL.pal()).to.be.eq(token.address)
+        
+        expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
+        expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
         expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
@@ -94,10 +98,10 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
         //constants
         expect(await hPAL.COOLDOWN_PERIOD()).to.be.eq(864000)
-        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(432000)
+        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(172800)
         expect(await hPAL.UNLOCK_DELAY()).to.be.eq(1209600)
-        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7889400)
-        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63115200)
+        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7884000)
+        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63072000)
 
     });
 
@@ -206,7 +210,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user1).stake(stake_amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -495,7 +499,7 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -503,21 +507,21 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
 
             await expect(
                 hPAL.connect(user2).transferFrom(user1.address, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer amount exceeds allowance')
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
         it(' should block transfer to/from address Zero', async () => {
 
-            await hPAL.connect(user1).approve(user1.address, allowance)
+            await hPAL.connect(user1).approve(user2.address, allowance)
 
             await expect(
-                hPAL.connect(user1).transferFrom(user1.address, ethers.constants.AddressZero, amount)
+                hPAL.connect(user2).transferFrom(user1.address, ethers.constants.AddressZero, amount)
             ).to.be.revertedWith('ERC20: transfer to the zero address')
 
             await expect(
-                hPAL.connect(user1).transferFrom(ethers.constants.AddressZero, user2.address, amount)
-            ).to.be.revertedWith('ERC20: transfer from the zero address')
+                hPAL.connect(user2).transferFrom(ethers.constants.AddressZero, user1.address, amount)
+            ).to.be.revertedWith('ERC20: insufficient allowance')
 
         });
 
@@ -1473,6 +1477,22 @@ describe('HolyPaladinToken contract tests - Base & Staking', () => {
             const old_cooldown = await hPAL.cooldowns(user1.address)
 
             await hPAL.connect(user2).transfer(user1.address, transfer_amount)
+
+            expect(await hPAL.cooldowns(user1.address)).to.be.eq(old_cooldown)
+
+        });
+
+        it(' transfer - should keep the cooldown is user self-transfer full balance', async () => {
+
+            await hPAL.connect(user1).stake(stake_amount)
+
+            await hPAL.connect(user1).cooldown()
+
+            await advanceTime(500)
+
+            const old_cooldown = await hPAL.cooldowns(user1.address)
+
+            await hPAL.connect(user1).transfer(user1.address, await hPAL.balanceOf(user1.address))
 
             expect(await hPAL.cooldowns(user1.address)).to.be.eq(old_cooldown)
 

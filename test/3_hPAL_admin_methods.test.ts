@@ -27,7 +27,7 @@ const mint_amount = ethers.utils.parseEther('10000000') // 10 M tokens
 const startDropPerSecond = ethers.utils.parseEther('0.0005')
 const endDropPerSecond = ethers.utils.parseEther('0.00001')
 
-const dropDecreaseDuration = 63115200
+const dropDecreaseDuration = 63072000
 
 const MONTH = 2629800
 
@@ -65,6 +65,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
             token.address,
             admin.address,
             mockRewardsVault.address,
+            ethers.constants.AddressZero,
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,
@@ -88,6 +89,9 @@ describe('HolyPaladinToken contract tests - Admin', () => {
         expect(tokenDecimals).to.be.eq(18)
 
         expect(await hPAL.pal()).to.be.eq(token.address)
+        
+        expect(await hPAL.smartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
+        expect(await hPAL.futureSmartWalletChecker()).to.be.eq(ethers.constants.AddressZero)
 
         expect(await hPAL.kickRatioPerWeek()).to.be.eq(100)
         expect(await hPAL.bonusLockVoteRatio()).to.be.eq(ethers.utils.parseEther('0.5'))
@@ -95,10 +99,10 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
         //constants
         expect(await hPAL.COOLDOWN_PERIOD()).to.be.eq(864000)
-        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(432000)
+        expect(await hPAL.UNSTAKE_PERIOD()).to.be.eq(172800)
         expect(await hPAL.UNLOCK_DELAY()).to.be.eq(1209600)
-        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7889400)
-        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63115200)
+        expect(await hPAL.MIN_LOCK_DURATION()).to.be.eq(7884000)
+        expect(await hPAL.MAX_LOCK_DURATION()).to.be.eq(63072000)
 
     });
 
@@ -190,7 +194,7 @@ describe('HolyPaladinToken contract tests - Admin', () => {
 
         const lock_amount = ethers.utils.parseEther('700')
 
-        const lock_duration = 31556952
+        const lock_duration = 31536000
 
         beforeEach(async () => {
 
@@ -371,6 +375,10 @@ describe('HolyPaladinToken contract tests - Admin', () => {
             ).to.be.revertedWith('EmergencyBlock')
 
             await expect(
+                hPAL.connect(user1).cooldown()
+            ).to.be.revertedWith('EmergencyBlock')
+
+            await expect(
                 hPAL.connect(user1).unlock()
             ).to.be.revertedWith('EmergencyBlock')
 
@@ -429,6 +437,13 @@ describe('HolyPaladinToken contract tests - Admin', () => {
             expect(total_locked.total).to.be.eq(0)
 
             expect(user_votes).to.be.eq(0)
+
+            const current_blockNumber = ethers.provider.blockNumber
+
+            const user_past_lock = await hPAL.getUserPastLock(user1.address, current_blockNumber - 10)
+
+            expect(user_past_lock.amount).to.be.eq(0)
+            expect(user_past_lock.duration).to.be.eq(0)
 
         });
 

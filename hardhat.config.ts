@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.4",
+        version: "0.8.10",
         settings: {
           optimizer: {
             enabled: true,
@@ -34,15 +34,6 @@ const config: HardhatUserConfig = {
           },
         }
       },
-      'contracts/HolyPaladinToken.sol': {
-        version: "0.8.10",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          },
-        }
-      },
     }
   },
   contractSizer: {
@@ -55,7 +46,8 @@ const config: HardhatUserConfig = {
       forking: {
         url: "https://eth-mainnet.alchemyapi.io/v2/" + (process.env.ALCHEMY_API_KEY || ''),
         blockNumber: 13178506
-      }
+      },
+      allowUnlimitedContractSize: true,
     },
     kovan: {
       url: process.env.KOVAN_URI,
