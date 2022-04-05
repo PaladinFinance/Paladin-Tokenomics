@@ -371,6 +371,10 @@ describe('HolyPaladinToken contract tests - Admin', () => {
             ).to.be.revertedWith('EmergencyBlock')
 
             await expect(
+                hPAL.connect(user1).cooldown()
+            ).to.be.revertedWith('EmergencyBlock')
+
+            await expect(
                 hPAL.connect(user1).unlock()
             ).to.be.revertedWith('EmergencyBlock')
 
