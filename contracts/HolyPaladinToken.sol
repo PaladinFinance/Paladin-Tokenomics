@@ -896,6 +896,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
     // Update user reward state internal
     function _updateUserRewards(address user) internal {
+        // In emergency mode, do not accrue rewards for users anymore
+        if(emergency) return();
+
         // Update the global reward state and get the latest index
         uint256 newIndex = _updateRewardState();
 
