@@ -1347,19 +1347,26 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             uint256 currentUserLockIndex = userLocks[msg.sender].length - 1;
             UserLock storage currentUserLock = userLocks[msg.sender][currentUserLockIndex];
 
-            // To remove the Lock and update the total locked
-            currentTotalLocked -= currentUserLock.amount;
-            totalLocks.push(TotalLock(
-                safe224(currentTotalLocked),
-                safe32(block.number)
-            ));
+            // No need to remove the last Lock if already empty
+            if(currentUserLock.amount != 0 && currentUserLock.duration > 0){
+                // To remove the Lock and update the total locked
+                currentTotalLocked -= currentUserLock.amount;
+                totalLocks.push(TotalLock(
+                    safe224(currentTotalLocked),
+                    safe32(block.number)
+                ));
 
-            userLocks[msg.sender].push(UserLock(
-                safe128(0),
-                safe48(block.timestamp),
-                safe48(0),
-                safe32(block.number)
-            ));
+                userLocks[msg.sender].push(UserLock(
+                    safe128(0),
+                    safe48(block.timestamp),
+                    safe48(0),
+                    safe32(block.number)
+                    ));
+
+                // Remove the bonus multiplier
+                userCurrentBonusRatio[msg.sender] = 0;
+                userBonusRatioDecrease[msg.sender] = 0;
+            }
         }
 
         // Get the user hPAL balance, and burn & send the given amount, or the user balance if the amount is bigger
