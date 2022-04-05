@@ -841,7 +841,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
         if(userLastIndex != currentRewardsIndex){
 
-            if(balanceOf(user) > 0){
+            if(balanceOf(user) != 0){
                 // calculate the base rewards for the user staked balance
                 // (using avaialable balance to count the locked balance with the multiplier later in this function)
                 uint256 indexDiff = currentRewardsIndex - userLastIndex;
@@ -850,7 +850,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
 
                 uint256 lockingRewards;
 
-                if(userLocks[user].length > 0){
+                if(userLocks[user].length != 0){
                     UserLockRewardVars memory vars;
 
                     // and if an user has a lock, calculate the locked rewards
@@ -860,7 +860,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                     userLockedBalance = uint256(userLocks[user][vars.lastUserLockIndex].amount);
 
                     // Check that the user's Lock is not empty
-                    if(userLockedBalance > 0 && userLocks[user][vars.lastUserLockIndex].duration != 0){
+                    if(userLockedBalance != 0 && userLocks[user][vars.lastUserLockIndex].duration != 0){
                         vars.previousBonusRatio = userCurrentBonusRatio[user];
 
                         if(vars.previousBonusRatio > 0){
