@@ -358,7 +358,7 @@ contract LockingHPALTest is DSTest {
             assertEq(userLock.amount, previousLock.amount);
             assertEq(userLock.startTimestamp, previousLock.startTimestamp);
             assertEq(userLock.duration, duration);
-            assertEq(userLock.fromBlock, previousLock.fromBlock);
+            assertEq(userLock.fromBlock, block.number);
             assertEq(newTotalLocked.total, previousTotalLocked.total);
 
         }
