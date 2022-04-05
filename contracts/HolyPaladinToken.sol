@@ -193,6 +193,9 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
         // Set the immutable variables
         rewardsVault = _rewardsVault;
 
+        // Prevent future underflow
+        require(_startDropPerSecond >= endDropPerSecond);
+
         startDropPerSecond = _startDropPerSecond;
         endDropPerSecond = _endDropPerSecond;
 
