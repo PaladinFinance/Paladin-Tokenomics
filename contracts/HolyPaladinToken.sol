@@ -173,7 +173,6 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
     error NotEmergency();
     /** @notice Error raised if contract is turned in emergency mode */
     error EmergencyBlock();
-
     error ContractNotAllowed(); 
 
     // Event
@@ -915,7 +914,7 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
                             // and calculate the locking rewards based on the locked balance & 
                             // a ratio based on the rpevious one and the newly calculated one
                             uint256 periodBonusRatio = newBonusRatio + ((userRatioDecrease + bonusRatioDecrease) / 2);
-                            lockingRewards = ((userLockedBalance * (indexDiff * vars.periodBonusRatio)) / UNIT) / UNIT;
+                            lockingRewards = ((userLockedBalance * (indexDiff * periodBonusRatio)) / UNIT) / UNIT;
                         }
                     }
 
@@ -979,7 +978,6 @@ contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
             cooldowns[to] = _getNewReceiverCooldown(fromCooldown, amount, to, balanceOf(to));
 
             // If from transfer all of its balance, reset the cooldown to 0
-            uint256 previousFromBalance = balanceOf(from);
             if(balanceOf(from) == amount && fromCooldown != 0) {
                 cooldowns[from] = 0;
             }
