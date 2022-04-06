@@ -19,7 +19,8 @@ const param_file_path = params_path();
 const {
     PAL_ADDRESS,
     REWARD_VAULT_ADDRESS,
-    ADMIN_ADDRESS
+    ADMIN_ADDRESS,
+    CHECKER_ADDRESS
 } = require(param_file_path);
 
 
@@ -49,10 +50,13 @@ async function main() {
 
     const Token = await ethers.getContractFactory("HolyPaladinToken");
 
+    const checker_address = CHECKER_ADDRESS === "" ? ethers.constants.AddressZero : CHECKER_ADDRESS;
+
     const token = await Token.deploy(
         PAL_ADDRESS,
         ADMIN_ADDRESS,
         REWARD_VAULT_ADDRESS,
+        checker_address,
         startDropPerSecond,
         endDropPerSecond,
         dropDecreaseDuration,
@@ -74,6 +78,7 @@ async function main() {
             PAL_ADDRESS,
             ADMIN_ADDRESS,
             REWARD_VAULT_ADDRESS,
+            checker_address,
             startDropPerSecond,
             endDropPerSecond,
             dropDecreaseDuration,

@@ -11,6 +11,8 @@ const PAL_ADDRESS = "0xAB846Fb6C81370327e784Ae7CbB6d6a6af6Ff4BF";
 
 const REWARD_VAULT_ADDRESS = "";
 
+const CHECKER_ADDRESS = "";
+
 const HPAL_ADDRESS = "";
 
 module.exports = {
@@ -20,4 +22,5 @@ module.exports = {
     PAL_ADDRESS,
     REWARD_VAULT_ADDRESS,
     HPAL_ADDRESS,
+    CHECKER_ADDRESS,
 };
