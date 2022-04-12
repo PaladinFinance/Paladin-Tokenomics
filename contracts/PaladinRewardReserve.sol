@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "./open-zeppelin/utils/Ownable.sol";
 import "./open-zeppelin/utils/ReentrancyGuard.sol";
 import "./open-zeppelin/interfaces/IERC20.sol";
+import "./utils/Owner.sol";
 import "./open-zeppelin/libraries/SafeERC20.sol";
 
 /** @title Paladin Reward Reserve contract  */
 /// @author Paladin
-contract PaladinRewardReserve is Ownable, ReentrancyGuard{
+contract PaladinRewardReserve is Owner, ReentrancyGuard{
     using SafeERC20 for IERC20;
 
     /** @notice Addresses allowed to transfer tokens from this contract */

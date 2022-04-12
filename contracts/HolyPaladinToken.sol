@@ -2,15 +2,15 @@
 pragma solidity ^0.8.10;
 
 import "./open-zeppelin/ERC20.sol";
-import "./open-zeppelin/utils/Ownable.sol";
 import "./open-zeppelin/interfaces/IERC20.sol";
 import "./open-zeppelin/libraries/SafeERC20.sol";
 import "./open-zeppelin/utils/Math.sol";
+import "./utils/Owner.sol";
 import "./utils/SmartWalletChecker.sol";
 
 /** @title Holy Paladin Token (hPAL) contract  */
 /// @author Paladin
-contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Ownable {
+contract HolyPaladinToken is ERC20("Holy Paladin Token", "hPAL"), Owner {
     using SafeERC20 for IERC20;
 
 
