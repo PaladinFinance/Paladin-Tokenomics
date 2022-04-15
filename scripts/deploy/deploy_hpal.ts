@@ -26,8 +26,8 @@ const {
 
 // Currently => Kovan test value, might need to change
 
-const startDropPerSecond = ethers.utils.parseEther('0.005')
-const endDropPerSecond = ethers.utils.parseEther('0.00075')
+const startDropPerSecond = ethers.utils.parseEther('0.0380517503805175') // 100k/month
+const endDropPerSecond = ethers.utils.parseEther('0.01141552511415525') // 30k/month
 
 const dropDecreaseDuration = 63072000
 
