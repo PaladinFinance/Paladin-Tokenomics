@@ -63,6 +63,10 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MAINNET_MNEMONIC,
       },*/
     },
+    fork: {
+      url: process.env.FORK_URI,
+      accounts: [process.env.MAINNET_PRIVATE_KEY || ''],
+    }
   },
   etherscan: {
     // Your API key for Etherscan
