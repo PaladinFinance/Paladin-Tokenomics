@@ -3,6 +3,9 @@
 ## Overview
 
 Smart contracts for the Paladin Token (PAL) & Holy Paladin Token (hPAL) 
+
+PAL: [0xAB846Fb6C81370327e784Ae7CbB6d6a6af6Ff4BF](https://etherscan.io/address/0xab846fb6c81370327e784ae7cbb6d6a6af6ff4bf) 
+hPAL: [0x624D822934e87D3534E435b83ff5C19769Efd9f6](https://etherscan.io/address/0x624d822934e87d3534e435b83ff5c19769efd9f6) 
   
 
 ## Dependencies & Installation
