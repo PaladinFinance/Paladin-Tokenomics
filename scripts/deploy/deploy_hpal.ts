@@ -9,6 +9,9 @@ const params_path = () => {
     if (network === 'kovan') {
         return '../utils/kovan_params'
     }
+    else if (network === 'fork') {
+        return '../utils/fork_params'
+    }
     else {
         return '../utils/main_params'
     }
