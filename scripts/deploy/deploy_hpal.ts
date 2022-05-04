@@ -24,8 +24,6 @@ const {
 } = require(param_file_path);
 
 
-// Currently => Kovan test value, might need to change
-
 const startDropPerSecond = ethers.utils.parseEther('0.0380517503805175') // 100k/month
 const endDropPerSecond = ethers.utils.parseEther('0.01141552511415525') // 30k/month
 
@@ -38,13 +36,7 @@ const maxLockBonusRatio = ethers.utils.parseEther('6')
 
 async function main() {
 
-    if (network === 'mainnet') {
-        console.log('!!! Make sure parameter are correct before deploy !!!')
-        process.exit(0);
-    }
-
     console.log('Deploying Holy Paladin Token ...')
-    console.log('!!!!!!! Currently using Kovan test values !!!!!!!')
 
     const deployer = (await hre.ethers.getSigners())[0];
 
