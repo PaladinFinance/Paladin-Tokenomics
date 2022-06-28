@@ -18,11 +18,11 @@ w3 = Web3(HTTPProvider(MAINNET_URI,request_kwargs={'timeout':60}))
 kicker_account = w3.eth.account.from_key(PRIVATE_KEY)
 """
 
-w3 = Web3(HTTPProvider(os.environ.get('KOVAN_URI'),request_kwargs={'timeout':60}))
+w3 = Web3(HTTPProvider(os.environ.get('MAINNET_URI'),request_kwargs={'timeout':60}))
 
-hPAL_address = "0x99D4BbE6D9D0d8DE84DF558621e2E686a7F45b75" # Kovan
+hPAL_address = "0x624D822934e87D3534E435b83ff5C19769Efd9f6" # Mainnet
 
-start_block = 30574843 # Kovan
+start_block = 14709709 # Mainnet
 
 
 hPAL = w3.eth.contract(abi=hPAL_minimal_ABI, address=hPAL_address)
@@ -52,7 +52,11 @@ for e in eventList:
 
             start_kick_ts = end_lock_ts + UNLOCK_DELAY
 
-            print("User", usr_address, "can be kicked at ts :", str(start_kick_ts))
+            #print("User", usr_address, "can be kicked at ts :", str(start_kick_ts))
+            if(start_kick_ts <= current_ts):
+                print("\x1b[31m%s User", usr_address, " need to be kicked \x1b[0m")
+            else:
+                print("User", usr_address, "can be kicked in ",str(start_kick_ts - current_ts),"sec")
 
 
 
