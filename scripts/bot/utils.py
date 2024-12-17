@@ -38,6 +38,7 @@ hPAL_minimal_ABI = [
         }
     ],"name": "Lock","type": "event"},
     {"inputs": [],"name": "UNLOCK_DELAY","outputs": [{"internalType": "uint256","name": "","type": "uint256"}],"stateMutability": "view","type": "function"},
+    {"inputs": [],"name": "WEEK","outputs": [{"internalType": "uint256","name": "","type": "uint256"}],"stateMutability": "view","type": "function"},
     {"inputs": [{"internalType": "address","name": "account","type": "address"}],"name": "balanceOf","outputs": [{"internalType": "uint256","name": "","type": "uint256"}],"stateMutability": "view","type": "function"},
     {
       "inputs": [
@@ -94,6 +95,7 @@ class UserLock:
 
 
 def fetch_events(
+    w3,
     event,
     argument_filters=None,
     from_block=None,
@@ -118,7 +120,7 @@ def fetch_events(
         raise TypeError("Missing mandatory keyword argument to getLogs: from_Block")
 
     abi = event._get_event_abi()
-    abi_codec = event.web3.codec
+    abi_codec = w3.codec
 
     # Set up any indexed event filters if needed
     argument_filters = dict()
@@ -136,7 +138,7 @@ def fetch_events(
     )
 
     # Call node over JSON-RPC API
-    logs = event.web3.eth.getLogs(event_filter_params)
+    logs = w3.eth.get_logs(event_filter_params)
 
     # Convert raw binary event data to easily manipulable Python objects
     for entry in logs:
